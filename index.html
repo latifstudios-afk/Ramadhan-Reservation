@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Somewhere · Galleria · Table Manager</title>
+    <title>Somewhere · Galleria Mall</title>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Cinzel:wght@400;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -24,7 +24,7 @@
         }
         #chart { max-width: 1400px; margin: 0 auto; }
         
-        /* capture mode */
+        /* capture mode - now we have two export modes, but keep for PNG/PDF of whole UI */
         #chart.capture-mode .dbtn, #chart.capture-mode .btn-add, #chart.capture-mode .btn-add-table,
         #chart.capture-mode .action-btn, #chart.capture-mode .guest-notes,
         #chart.capture-mode input, #chart.capture-mode select,
@@ -46,7 +46,9 @@
         .divider::after { background: linear-gradient(to left, transparent, var(--gold-d)); }
         .ts-badge { font-size: 9px; color: var(--gold); opacity: 0.7; margin-top: 4px; }
 
-        .actions-bar { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 5px 0 20px; }
+        .actions-bar {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 5px 0 20px;
+        }
         .action-btn {
             font-family: 'Cinzel', serif; font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
             padding: 8px 16px; border-radius: 2px; background: linear-gradient(135deg, var(--gold-d), var(--gold));
@@ -54,7 +56,7 @@
         }
         .action-btn.reset-btn { background: linear-gradient(135deg,#3b2b2b,#2a1a1a); color: #dac08a; }
 
-        /* floor plans – stacked then row */
+        /* floor plans */
         .floor-plans { display: flex; flex-direction: column; gap: 30px; padding: 0 10px; margin-bottom: 30px; }
         @media (min-width: 900px) { .floor-plans { flex-direction: row; } }
         .floor {
@@ -73,23 +75,24 @@
             background-size: 50px 50px; overflow: hidden; touch-action: none;
         }
 
-        /* table card – now shows booking info */
+        /* table card base – all same size 110x110, shape via clip-path/border-radius */
         .table-item {
             position: absolute; cursor: pointer; user-select: none;
-            background: var(--table-wood); border-radius: 16px 16px 12px 12px;
+            background: var(--table-wood); 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             font-weight: bold; color: white; text-shadow: 0 2px 3px black;
             box-shadow: 0 10px 0 #4f3e28, 0 16px 20px rgba(0,0,0,0.7);
             border-bottom: 4px solid #ab7e4a; transition: 0.1s;
             will-change: left, top; touch-action: none; padding: 8px 4px;
             font-size: 11px; line-height: 1.3;
+            width: 110px; height: 110px; /* fixed small size */
         }
         .table-item:active { filter: brightness(1.1); transform: scale(1.01); }
-        /* capacity-based sizing */
-        .table-item[data-capacity="2"] { width: 100px; height: 100px; }
-        .table-item[data-capacity="4"] { width: 130px; height: 130px; }
-        .table-item[data-capacity="6"] { width: 160px; height: 160px; }
-        .table-item[data-capacity="8"] { width: 190px; height: 190px; }
+        /* shape classes */
+        .table-item.shape-square { border-radius: 8px; }
+        .table-item.shape-rectangle { border-radius: 4px; transform: scaleX(1.2) scaleY(0.9); /* maintain area approx */ }
+        .table-item.shape-circle { border-radius: 50%; }
+        .table-item.shape-oval { border-radius: 50% / 30%; }
 
         .table-number {
             background: rgba(0,0,0,0.7); padding: 4px 10px; border-radius: 30px;
@@ -112,7 +115,7 @@
         }
         .add-table-panel {
             display: flex; gap: 8px; background: #1e1e1e; padding: 8px 16px; border-radius: 40px;
-            border: 1px solid var(--gold-d);
+            border: 1px solid var(--gold-d); flex-wrap: wrap;
         }
         .add-table-panel select {
             background: #2a2a2a; color: var(--gold-l); border: 1px solid #55411e;
@@ -123,7 +126,7 @@
             border-radius: 30px; padding: 6px 18px; font-size: 11px; cursor: pointer;
         }
 
-        /* MODAL for booking */
+        /* MODAL */
         .modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); z-index: 2000; align-items: center; justify-content: center;
@@ -176,14 +179,7 @@
             align-items: center; padding: 12px; border-bottom: 1px solid rgba(255,255,255,.04);
             font-size: 11px;
         }
-        .grow input, .grow select {
-            background: transparent; border: none; border-bottom: 1px dashed #3d3d3d;
-            color: var(--txt); padding: 4px 2px; font-size: 10px; width: 100%;
-        }
-        .grow input:focus, .grow select:focus { outline: none; border-bottom-color: var(--gold); }
-        .status-badge {
-            padding: 4px 6px; border-radius: 20px; font-size: 8px; font-weight: 600; text-align: center;
-        }
+        .grow span { overflow: hidden; text-overflow: ellipsis; }
         .dbtn { color: #b66; background: none; border: none; cursor: pointer; font-size: 14px; }
 
         .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; padding: 0 10px; margin: 20px 0; }
@@ -229,6 +225,15 @@
                 <option value="unpaid">UNPAID</option>
             </select>
         </div>
+        <div class="modal-field">
+            <label>Table shape</label>
+            <select id="modalShape">
+                <option value="square">Square</option>
+                <option value="rectangle">Rectangle</option>
+                <option value="circle">Circle</option>
+                <option value="oval">Oval</option>
+            </select>
+        </div>
         <div class="modal-buttons">
             <button class="modal-btn" id="modalSaveBtn">SAVE</button>
             <button class="modal-btn delete" id="modalDeleteBtn">CLEAR</button>
@@ -243,16 +248,17 @@
     <div class="banner">
         <span class="b-txt">SOMEWHERE</span> <span class="b-dot">◆</span>
         <span class="b-txt">GALLERIA MALL</span> <span class="b-dot">◆</span>
-        <span class="b-txt">SEATING</span>
+        <span class="b-txt">SHAPE TABLES</span>
     </div>
     <div class="hdr">
-        <h1>Table <em>Management</em></h1>
+        <h1>Table <em>Manager</em></h1>
         <div class="divider"><span>✦</span></div>
         <div class="ts-badge" id="timestamp">just now</div>
     </div>
     <div class="actions-bar">
-        <button class="action-btn" onclick="downloadPDF()">📄 PDF</button>
-        <button class="action-btn" onclick="downloadPNG()">🖼️ PNG</button>
+        <button class="action-btn" onclick="downloadPDF()">📄 FULL PDF</button>
+        <button class="action-btn" onclick="downloadPNG()">🖼️ FULL PNG</button>
+        <button class="action-btn" onclick="exportReservations()">📋 EXPORT LIST</button>
         <button class="action-btn reset-btn" onclick="resetToSample()">↺ RESET</button>
     </div>
 
@@ -269,7 +275,7 @@
         <div class="sc"><div class="sn" id="stat-tables">0</div><div class="sl">TABLES</div></div>
     </div>
     <div class="orn">— ✦ —</div>
-    <div class="ftxt">LS · luxury seating</div>
+    <div class="ftxt">LS · luxury seating · shapes</div>
 </div>
 
 <script>
@@ -280,17 +286,17 @@
 
         function uid() { return Date.now() + '-' + Math.random().toString(36).substr(2, 9); }
 
-        // ----- FIXED TABLE NUMBERS from images -----
+        // Table numbers from images
         const insideNumbers = [11,14,16,17,18,19,20,30,32,33,35,37,38];
         const outsideNumbers = [41,42,44,45,46,50,51,52,53,54,55,56];
 
         function createDefaultTables() {
-            // Place inside tables in a nice grid (sorted)
             const inside = insideNumbers.sort((a,b)=>a-b).map((num, idx) => ({
                 id: uid(), number: num, capacity: 4, paid: false,
+                shape: ['square','rectangle','circle','oval'][idx % 4],
                 position: { x: 40 + (idx % 4) * 150, y: 40 + Math.floor(idx / 4) * 140 }
             }));
-            // adjust capacities for some
+            // adjust capacities
             inside.forEach(t => {
                 if ([20,32,17,11,18].includes(t.number)) t.capacity = 4;
                 else if ([16,14,19].includes(t.number)) t.capacity = 2;
@@ -298,6 +304,7 @@
             });
             const outside = outsideNumbers.sort((a,b)=>a-b).map((num, idx) => ({
                 id: uid(), number: num, capacity: 4,
+                shape: ['square','rectangle','circle','oval'][idx % 4],
                 position: { x: 40 + (idx % 4) * 150, y: 40 + Math.floor(idx / 4) * 140 }
             }));
             outside.forEach(t => {
@@ -307,7 +314,6 @@
             return { inside, outside };
         }
 
-        // Default reservations (some tables occupied)
         function createDefaultReservations(tableList) {
             return {
                 inside: [
@@ -327,7 +333,7 @@
         }
 
         function loadFromStorage() {
-            const saved = localStorage.getItem('SeatingFinalLSv2');
+            const saved = localStorage.getItem('SeatingFinalShapes');
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
@@ -344,7 +350,7 @@
         loadFromStorage();
 
         function save() {
-            localStorage.setItem('SeatingFinalLSv2', JSON.stringify({ tables, reservations }));
+            localStorage.setItem('SeatingFinalShapes', JSON.stringify({ tables, reservations }));
             updateTimestamp();
         }
 
@@ -353,7 +359,7 @@
             document.getElementById('timestamp').innerText = `updated ${now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
         }
 
-        // ---------- MODAL LOGIC ----------
+        // ---------- MODAL ----------
         let currentModalZone = null, currentModalTableId = null;
 
         function openModal(zone, tableId) {
@@ -361,12 +367,12 @@
             const table = tables[zone].find(t => t.id === tableId);
             if (!table) return;
             document.getElementById('modalTableNum').innerText = table.number;
-            // find existing reservation for this table
             const existing = reservations[zone].find(r => r.tableId === tableId);
             document.getElementById('modalName').value = existing ? existing.name : '';
             document.getElementById('modalGuests').value = existing ? existing.partySize : table.capacity;
             document.getElementById('modalTime').value = existing ? (existing.time || '19:30') : '19:30';
             document.getElementById('modalPaid').value = existing ? (existing.paid ? 'paid' : 'unpaid') : 'unpaid';
+            document.getElementById('modalShape').value = table.shape || 'square';
             document.getElementById('bookingModal').classList.add('show');
         }
 
@@ -375,7 +381,6 @@
             currentModalZone = null; currentModalTableId = null;
         }
 
-        // Save from modal
         document.getElementById('modalSaveBtn').addEventListener('click', () => {
             if (!currentModalZone || !currentModalTableId) return;
             const zone = currentModalZone;
@@ -384,16 +389,19 @@
             const guests = parseInt(document.getElementById('modalGuests').value, 10) || 1;
             const time = document.getElementById('modalTime').value;
             const paid = document.getElementById('modalPaid').value === 'paid';
+            const shape = document.getElementById('modalShape').value;
+
+            // update table shape
+            const table = tables[zone].find(t => t.id === tableId);
+            if (table) table.shape = shape;
 
             const existingIndex = reservations[zone].findIndex(r => r.tableId === tableId);
             if (existingIndex >= 0) {
-                // update
                 reservations[zone][existingIndex].name = name || 'Guest';
                 reservations[zone][existingIndex].partySize = guests;
                 reservations[zone][existingIndex].time = time;
                 reservations[zone][existingIndex].paid = paid;
             } else {
-                // create new reservation
                 reservations[zone].push({
                     id: uid(), name: name || 'Guest', partySize: guests, tableId: tableId,
                     status: 'confirmed', paid: paid, time: time
@@ -403,7 +411,6 @@
             closeModal();
         });
 
-        // Delete / clear
         document.getElementById('modalDeleteBtn').addEventListener('click', () => {
             if (!currentModalZone || !currentModalTableId) return;
             const zone = currentModalZone;
@@ -415,7 +422,7 @@
 
         document.getElementById('modalCancelBtn').addEventListener('click', closeModal);
 
-        // ---------- RENDER FLOOR PLANS (numerically arranged) ----------
+        // ---------- RENDER ----------
         function renderAll() {
             renderFloorPlans();
             renderReservationSections();
@@ -439,31 +446,29 @@
                                 <option value="6">6 pax</option>
                                 <option value="8">8 pax</option>
                             </select>
+                            <select id="shape-${zone}">
+                                <option value="square">Square</option>
+                                <option value="rectangle">Rectangle</option>
+                                <option value="circle">Circle</option>
+                                <option value="oval">Oval</option>
+                            </select>
                             <button class="btn-add-table" onclick="addTableWithSize('${zone}')">+ Add table</button>
                         </div>
                     </div>`;
                 container.appendChild(floorDiv);
                 const grid = document.getElementById(`floor-${zone}`);
-                // sort numerically by table number
                 const sortedTables = [...tables[zone]].sort((a,b) => a.number - b.number);
-                // reposition in grid if needed (but keep saved positions)
-                sortedTables.forEach((table, idx) => {
-                    // if position is way out of bounds, reassign (but keep saved if reasonable)
-                    if (!table.position || table.position.x < 10 || table.position.y < 10) {
-                        table.position = { x: 40 + (idx % 4) * 150, y: 40 + Math.floor(idx / 4) * 140 };
-                    }
-                });
-
                 sortedTables.forEach(table => {
+                    if (!table.position || table.position.x < 10 || table.position.y < 10) {
+                        // reassign (should not happen)
+                    }
                     const tableEl = document.createElement('div');
-                    tableEl.className = 'table-item';
+                    tableEl.className = `table-item shape-${table.shape || 'square'}`;
                     tableEl.setAttribute('data-id', table.id);
                     tableEl.setAttribute('data-zone', zone);
-                    tableEl.setAttribute('data-capacity', table.capacity);
                     tableEl.style.left = (table.position?.x || 60) + 'px';
                     tableEl.style.top = (table.position?.y || 60) + 'px';
 
-                    // Find if this table has a reservation
                     const res = reservations[zone].find(r => r.tableId === table.id);
                     const customerName = res ? res.name : '';
                     const guestCount = res ? res.partySize : '';
@@ -476,7 +481,6 @@
                     `;
                     grid.appendChild(tableEl);
                     makeDraggable(tableEl, zone, table.id);
-                    // tap to open modal
                     tableEl.addEventListener('click', (e) => {
                         e.stopPropagation();
                         openModal(zone, table.id);
@@ -485,7 +489,6 @@
             });
         }
 
-        // Dragging (same as before)
         function makeDraggable(el, zone, tableId) {
             let startX, startY, startLeft, startTop, isDragging = false;
             const grid = el.parentNode;
@@ -538,7 +541,6 @@
             el.addEventListener('dragstart', (e) => e.preventDefault());
         }
 
-        // Reservation sections (simplified list)
         function renderReservationSections() {
             const container = document.getElementById('sectionsContainer');
             container.innerHTML = '';
@@ -566,34 +568,34 @@
         function createResRow(zone, res) {
             const row = document.createElement('div');
             row.className = 'grow';
-
-            const nameSpan = document.createElement('span'); nameSpan.textContent = res.name;
-            const sizeSpan = document.createElement('span'); sizeSpan.textContent = res.partySize;
             const table = tables[zone].find(t => t.id === res.tableId);
-            const tableSpan = document.createElement('span'); tableSpan.textContent = table ? `T-${table.number}` : '—';
-            const statusSpan = document.createElement('span'); statusSpan.textContent = res.status;
-            const paidSpan = document.createElement('span'); paidSpan.textContent = res.paid ? 'PAID' : 'UNPAID';
-            const delBtn = document.createElement('button'); delBtn.textContent = '✕'; delBtn.className = 'dbtn';
-            delBtn.onclick = () => { reservations[zone] = reservations[zone].filter(r => r.id !== res.id); renderAll(); };
-
-            row.appendChild(nameSpan);
-            row.appendChild(sizeSpan);
-            row.appendChild(tableSpan);
-            row.appendChild(statusSpan);
-            row.appendChild(paidSpan);
-            row.appendChild(delBtn);
+            const tableNum = table ? `T-${table.number}` : '—';
+            row.innerHTML = `
+                <span>${res.name}</span>
+                <span>${res.partySize}</span>
+                <span>${tableNum}</span>
+                <span>${res.status}</span>
+                <span>${res.paid ? 'PAID' : 'UNPAID'}</span>
+                <button class="dbtn" onclick="deleteRes('${zone}', '${res.id}')">✕</button>
+            `;
             return row;
         }
 
-        // ----- CRUD -----
+        window.deleteRes = (zone, resId) => {
+            reservations[zone] = reservations[zone].filter(r => r.id !== resId);
+            renderAll();
+        };
+
         window.addEmptyReservation = (zone) => {
             reservations[zone].push({ id: uid(), name: 'Guest', partySize: 2, tableId: null, status: 'confirmed', paid: false, time: '19:30' });
             renderAll();
         };
 
         window.addTableWithSize = (zone) => {
-            const select = document.getElementById(`pax-${zone}`);
-            const capacity = parseInt(select.value, 10);
+            const paxSelect = document.getElementById(`pax-${zone}`);
+            const shapeSelect = document.getElementById(`shape-${zone}`);
+            const capacity = parseInt(paxSelect.value, 10);
+            const shape = shapeSelect.value;
             const maxNum = tables[zone].length > 0 ? Math.max(...tables[zone].map(t => t.number)) : 0;
             const newNum = maxNum + 1;
             // find free space
@@ -608,7 +610,7 @@
                 });
                 if (!collision) break;
             }
-            const newTable = { id: uid(), number: newNum, capacity: capacity, position: { x: baseX, y: baseY } };
+            const newTable = { id: uid(), number: newNum, capacity: capacity, shape: shape, position: { x: baseX, y: baseY } };
             tables[zone].push(newTable);
             renderAll();
         };
@@ -632,7 +634,7 @@
             if (outsideSub) outsideSub.innerText = `${reservations.outside.length} groups`;
         }
 
-        // ----- EXPORT -----
+        // ----- EXPORT FULL UI (same as before) -----
         async function capture(mode) {
             const overlay = document.getElementById('overlay');
             overlay.classList.add('show');
@@ -669,6 +671,31 @@
             overlay.classList.remove('show');
         }
 
+        // ----- EXPORT RESERVATION LIST (only details) -----
+        window.exportReservations = () => {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            let y = 20;
+            pdf.setFontSize(16);
+            pdf.text('Reservation Details', 20, y);
+            y += 10;
+            pdf.setFontSize(10);
+            ['inside', 'outside'].forEach(zone => {
+                pdf.text(zone.toUpperCase(), 20, y);
+                y += 6;
+                reservations[zone].forEach(res => {
+                    const table = tables[zone].find(t => t.id === res.tableId);
+                    const tableNum = table ? `T-${table.number}` : 'No table';
+                    const line = `${res.name} | ${res.partySize} guests | ${tableNum} | ${res.status} | ${res.paid ? 'PAID' : 'UNPAID'}`;
+                    if (y > 280) { pdf.addPage(); y = 20; }
+                    pdf.text(line, 25, y);
+                    y += 6;
+                });
+                y += 4;
+            });
+            pdf.save('reservation-list.pdf');
+        };
+
         window.downloadPDF = () => capture('pdf');
         window.downloadPNG = () => capture('png');
 
@@ -676,4 +703,4 @@
     })();
 </script>
 </body>
-  </html>
+</html>
