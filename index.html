@@ -1,607 +1,679 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Somewhere · Galleria · Floor Plan + Reservations</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Cinzel:wght@400;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --gold: #C9A84C; --gold-l: #E8C97A; --gold-d: #8a6a2a;
-      --red: #9B1C1C; --red-b: #C0392B;
-      --blk: #0a0a0a; --card: #111111;
-      --txt: #F5EDD8; --muted: rgba(245,237,216,0.42);
-      --green: #2a6f4b; --green-b: #3f9e6f;
-      --table-surface: #2c1e0e;
-      --table-leg: #4a3724;
-    }
-    body {
-      font-family: 'Montserrat', sans-serif;
-      background: var(--blk); color: var(--txt);
-      min-height: 100vh;
-      background-image: radial-gradient(ellipse 80% 45% at 50% 0%, rgba(155,28,28,.18) 0%, transparent 70%),
-                        radial-gradient(ellipse 50% 30% at 5% 100%, rgba(201,168,76,.07) 0%, transparent 60%),
-                        radial-gradient(ellipse 50% 30% at 95% 100%, rgba(201,168,76,.07) 0%, transparent 60%);
-      padding: 20px 10px;
-    }
-    #chart { max-width: 1400px; margin: 0 auto; transition: filter 0.2s; }
-    /* capture mode (for export) – keep tables visible but static */
-    #chart.capture-mode .dbtn,
-    #chart.capture-mode .btn-add,
-    #chart.capture-mode .btn-add-table,
-    #chart.capture-mode .action-btn,
-    #chart.capture-mode .table-delete,
-    #chart.capture-mode .guest-notes,
-    #chart.capture-mode input,
-    #chart.capture-mode select {
-      opacity: 0; pointer-events: none; /* hide interactive elements, keep tables */
-    }
-    #chart.capture-mode .table-item {
-      pointer-events: none; /* prevent drag in capture */
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Somewhere · Galleria · Table Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Cinzel:wght@400;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --gold: #C9A84C; --gold-l: #E8C97A; --gold-d: #8a6a2a;
+            --red: #9B1C1C; --red-b: #C0392B;
+            --blk: #0a0a0a; --card: #111111;
+            --txt: #F5EDD8; --muted: rgba(245,237,216,0.42);
+            --green: #2a6f4b; --green-b: #3f9e6f;
+            --table-wood: #b57c48; --table-dark: #6b4f2e;
+        }
+        body {
+            font-family: 'Montserrat', sans-serif; background: var(--blk); color: var(--txt);
+            min-height: 100vh; padding: 10px; touch-action: pan-y pinch-zoom;
+            background-image: radial-gradient(ellipse 80% 45% at 50% 0%, rgba(155,28,28,.15) 0%, transparent 70%);
+        }
+        #chart { max-width: 1400px; margin: 0 auto; }
+        
+        /* capture mode */
+        #chart.capture-mode .dbtn, #chart.capture-mode .btn-add, #chart.capture-mode .btn-add-table,
+        #chart.capture-mode .action-btn, #chart.capture-mode .guest-notes,
+        #chart.capture-mode input, #chart.capture-mode select,
+        #chart.capture-mode .table-item { pointer-events: none; }
 
-    .banner {
-      background: linear-gradient(135deg,#1a0000 0%,#2a0808 50%,#1a0000 100%);
-      border-bottom: 2px solid var(--gold-d);
-      padding: 16px 32px; display: flex; align-items: center; justify-content: center;
-      gap: 12px; flex-wrap: wrap;
-    }
-    .b-icon { font-size: 20px; }
-    .b-txt { font-family: 'Cinzel', serif; font-size: clamp(10px,2vw,13px); font-weight: 600; letter-spacing: 4px; color: var(--gold-l); text-transform: uppercase; }
-    .b-dot { color: var(--red-b); font-size: 10px; }
-    .hdr { text-align: center; padding: 30px 20px 20px; }
-    .hdr-eye { font-family: 'Cinzel', serif; font-size: 10px; font-weight: 600; letter-spacing: 6px; color: var(--gold); opacity: .75; margin-bottom: 12px; text-transform: uppercase; }
-    .hdr h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(40px,8vw,72px); font-weight: 300; letter-spacing: 4px; color: var(--txt); line-height: 1; margin-bottom: 4px; }
-    .hdr h1 em { font-style: italic; color: var(--gold); }
-    .divider { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 12px auto 10px; max-width: 300px; }
-    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; }
-    .divider::before { background: linear-gradient(to right, transparent, var(--gold-d)); }
-    .divider::after { background: linear-gradient(to left, transparent, var(--gold-d)); }
-    .divider span { color: var(--gold); font-size: 12px; }
-    .hdr-sub { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; }
-    .ts-badge { margin-top: 12px; font-size: 9px; letter-spacing: 2px; color: var(--gold); opacity: 0.7; }
+        .banner {
+            background: linear-gradient(135deg,#1a0000 0%,#2a0808 50%,#1a0000 100%);
+            border-bottom: 2px solid var(--gold-d); padding: 16px 20px;
+            display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px;
+        }
+        .b-txt { font-family: 'Cinzel', serif; font-size: clamp(10px,3vw,13px); font-weight: 600; letter-spacing: 3px; color: var(--gold-l); }
+        .b-dot { color: var(--red-b); font-size: 12px; }
 
-    .actions-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 16px; margin: 0 20px 30px; }
-    .action-btn {
-      font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600; letter-spacing: 2px;
-      text-transform: uppercase; padding: 10px 22px; border-radius: 2px; cursor: pointer;
-      background: linear-gradient(135deg, var(--gold-d), var(--gold)); color: #0a0a0a;
-      border: none; box-shadow: 0 0 20px rgba(201,168,76,.2);
-      transition: filter .2s, transform .2s; display: inline-flex; align-items: center; gap: 8px;
-    }
-    .action-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
-    .action-btn.reset-btn { background: linear-gradient(135deg,#3b2b2b,#2a1a1a); color: #dac08a; }
+        .hdr { text-align: center; padding: 20px 10px; }
+        .hdr h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(40px,10vw,68px); font-weight: 300; }
+        .hdr h1 em { font-style: italic; color: var(--gold); }
+        .divider { display: flex; align-items: center; gap: 10px; max-width: 300px; margin: 8px auto; }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--gold-d)); }
+        .divider::after { background: linear-gradient(to left, transparent, var(--gold-d)); }
+        .ts-badge { font-size: 9px; color: var(--gold); opacity: 0.7; margin-top: 4px; }
 
-    /* FLOOR PLAN */
-    .floor-plans {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
-      padding: 0 20px; margin-bottom: 30px;
-    }
-    @media (max-width: 900px) { .floor-plans { grid-template-columns: 1fr; } }
-    .floor {
-      background: #0f0f0f; border-radius: 16px; border: 1px solid rgba(201,168,76,.2);
-      padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.7);
-    }
-    .floor h3 {
-      font-family: 'Cinzel', serif; font-size: 16px; letter-spacing: 3px;
-      color: var(--gold-l); margin-bottom: 12px; padding-left: 8px;
-    }
-    .floor-grid {
-      position: relative; background: #1a1a1a; height: 400px;
-      border-radius: 12px; border: 1px dashed #3d3d3d;
-      background-image: 
-        linear-gradient(rgba(201,168,76,0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(201,168,76,0.05) 1px, transparent 1px);
-      background-size: 30px 30px;
-      overflow: hidden; /* keep tables inside */
-    }
-    .table-item {
-      position: absolute; cursor: grab; user-select: none;
-      width: 70px; height: 70px; background: var(--table-surface);
-      border-radius: 12px 12px 8px 8px; display: flex; align-items: center; justify-content: center;
-      font-weight: bold; font-size: 16px; color: var(--gold-l);
-      box-shadow: 0 10px 0 #3a2a1a, 0 15px 15px rgba(0,0,0,0.5);
-      transform: rotateX(2deg) rotateY(0deg) translateZ(10px);
-      transform-style: preserve-3d; transition: box-shadow 0.1s, filter 0.1s;
-      border-bottom: 4px solid #5e4b32;
-      font-family: 'Cinzel', serif;
-      will-change: left, top;
-    }
-    .table-item:before {
-      content: ''; position: absolute; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.2); border-radius: 12px;
-      transform: translateZ(-5px); filter: blur(2px);
-    }
-    .table-item:after {
-      content: ''; position: absolute; width: 12px; height: 16px;
-      background: var(--table-leg); bottom: -10px; left: 15px;
-      border-radius: 2px; box-shadow: 20px 0 0 var(--table-leg), 40px 0 0 var(--table-leg);
-    }
-    .table-item.dragging { cursor: grabbing; filter: brightness(1.2); z-index: 1000; }
-    .table-item .table-number {
-      background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 20px;
-      font-size: 12px; color: var(--gold); border: 1px solid #6a5a3a;
-    }
-    .floor-actions {
-      display: flex; justify-content: flex-end; margin-top: 12px;
-    }
-    .btn-add-table {
-      font-size: 10px; background: rgba(201,168,76,.1); border: 1px solid rgba(201,168,76,.3);
-      color: var(--gold); border-radius: 20px; padding: 5px 18px; cursor: pointer;
-      font-weight: 600; letter-spacing: 1px; transition: 0.2s;
-    }
-    .btn-add-table:hover { background: rgba(201,168,76,.2); }
+        .actions-bar { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 5px 0 20px; }
+        .action-btn {
+            font-family: 'Cinzel', serif; font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+            padding: 8px 16px; border-radius: 2px; background: linear-gradient(135deg, var(--gold-d), var(--gold));
+            color: #0a0a0a; border: none; box-shadow: 0 0 8px rgba(201,168,76,.2); cursor: pointer;
+        }
+        .action-btn.reset-btn { background: linear-gradient(135deg,#3b2b2b,#2a1a1a); color: #dac08a; }
 
-    /* sections */
-    .sections { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 0 20px; margin-bottom: 28px; }
-    @media (max-width: 800px) { .sections { grid-template-columns: 1fr; } }
+        /* floor plans – stacked then row */
+        .floor-plans { display: flex; flex-direction: column; gap: 30px; padding: 0 10px; margin-bottom: 30px; }
+        @media (min-width: 900px) { .floor-plans { flex-direction: row; } }
+        .floor {
+            flex: 1; background: #0f0f0f; border-radius: 28px; border: 1px solid rgba(201,168,76,.2);
+            padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,.8);
+        }
+        .floor h3 {
+            font-family: 'Cinzel', serif; font-size: 22px; letter-spacing: 2px; color: var(--gold-l);
+            margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
+        }
+        .floor-grid {
+            position: relative; background: #1a1a1a; height: 480px;
+            border-radius: 24px; border: 2px dashed #4d4d4d;
+            background-image: linear-gradient(rgba(201,168,76,0.05) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(201,168,76,0.05) 1px, transparent 1px);
+            background-size: 50px 50px; overflow: hidden; touch-action: none;
+        }
 
-    .section { border-radius: 12px; overflow: hidden; border: 1px solid rgba(201,168,76,.18); box-shadow: 0 0 36px rgba(0,0,0,.55); background: var(--card); }
-    .sec-hdr {
-      padding: 16px 18px; display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid rgba(201,168,76,.15);
-    }
-    .inside .sec-hdr { background: linear-gradient(135deg,#200800,#2d1200,#1a0800); }
-    .outside .sec-hdr { background: linear-gradient(135deg,#0a0000,#1f0505,#110000); }
-    .sh-l { display: flex; align-items: center; gap: 12px; }
-    .s-ico {
-      width: 38px; height: 38px; border-radius: 7px; display: flex; align-items: center; justify-content: center;
-      background: rgba(201,168,76,.1); border: 1px solid rgba(201,168,76,.18);
-      font-size: 18px;
-    }
-    .s-title { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 600; letter-spacing: 2px; color: var(--gold-l); }
-    .s-sub { font-size: 9px; letter-spacing: 1px; color: var(--muted); margin-top: 2px; }
+        /* table card – now shows booking info */
+        .table-item {
+            position: absolute; cursor: pointer; user-select: none;
+            background: var(--table-wood); border-radius: 16px 16px 12px 12px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-weight: bold; color: white; text-shadow: 0 2px 3px black;
+            box-shadow: 0 10px 0 #4f3e28, 0 16px 20px rgba(0,0,0,0.7);
+            border-bottom: 4px solid #ab7e4a; transition: 0.1s;
+            will-change: left, top; touch-action: none; padding: 8px 4px;
+            font-size: 11px; line-height: 1.3;
+        }
+        .table-item:active { filter: brightness(1.1); transform: scale(1.01); }
+        /* capacity-based sizing */
+        .table-item[data-capacity="2"] { width: 100px; height: 100px; }
+        .table-item[data-capacity="4"] { width: 130px; height: 130px; }
+        .table-item[data-capacity="6"] { width: 160px; height: 160px; }
+        .table-item[data-capacity="8"] { width: 190px; height: 190px; }
 
-    /* reservation rows */
-    .glist { background: var(--card); }
-    .grow {
-      display: grid; grid-template-columns: 1fr 70px 130px 100px 1fr 30px; gap: 6px;
-      align-items: center; padding: 12px 18px; border-bottom: 1px solid rgba(255,255,255,.04);
-    }
-    @media (max-width: 1000px) {
-      .grow { grid-template-columns: 1fr 70px 120px 90px 1fr 30px; }
-    }
-    .grow:hover { background: rgba(201,168,76,.04); }
+        .table-number {
+            background: rgba(0,0,0,0.7); padding: 4px 10px; border-radius: 30px;
+            font-size: 13px; color: var(--gold-l); border: 1px solid #b48b4a; margin-bottom: 4px;
+        }
+        .booking-info {
+            background: rgba(0,0,0,0.6); border-radius: 20px; padding: 4px 8px;
+            width: 90%; text-align: center; margin: 2px 0; font-size: 9px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .paid-status {
+            font-weight: 700; padding: 2px 8px; border-radius: 20px;
+            background: rgba(0,0,0,0.5); margin-top: 4px;
+        }
+        .paid-status.paid { color: #a0e0a0; }
+        .paid-status.unpaid { color: #f0a0a0; }
 
-    .gname, .guest-notes {
-      background: transparent; border: none; border-bottom: 1px dashed transparent;
-      font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 600;
-      color: var(--txt); padding: 4px 6px; outline: none; transition: 0.2s;
-    }
-    .gname:hover, .guest-notes:hover { border-bottom-color: rgba(201,168,76,.3); }
-    .gname:focus, .guest-notes:focus { border-bottom-color: var(--gold); background: rgba(201,168,76,.05); border-radius: 3px; }
-    .guest-notes { font-size: 10px; font-style: italic; color: var(--muted); min-width: 80px; }
+        .floor-actions {
+            display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 20px;
+        }
+        .add-table-panel {
+            display: flex; gap: 8px; background: #1e1e1e; padding: 8px 16px; border-radius: 40px;
+            border: 1px solid var(--gold-d);
+        }
+        .add-table-panel select {
+            background: #2a2a2a; color: var(--gold-l); border: 1px solid #55411e;
+            border-radius: 30px; padding: 6px 12px; font-size: 11px; font-weight: 600;
+        }
+        .btn-add-table {
+            background: var(--gold-d); border: none; color: black; font-weight: 600;
+            border-radius: 30px; padding: 6px 18px; font-size: 11px; cursor: pointer;
+        }
 
-    .snum {
-      width: 50px; text-align: center; font-size: 13px; font-weight: 600;
-      background: rgba(201,168,76,.08); border: 1px solid rgba(201,168,76,.2);
-      border-radius: 4px; padding: 4px 0; color: var(--gold-l); outline: none;
-    }
-    .snum:focus { border-color: var(--gold); }
+        /* MODAL for booking */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 2000; align-items: center; justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        .modal.show { display: flex; }
+        .modal-card {
+            background: #1c1c1c; border-radius: 32px; padding: 28px; width: 90%; max-width: 400px;
+            border: 2px solid var(--gold-d); box-shadow: 0 20px 40px black;
+        }
+        .modal-card h2 { font-family: 'Cinzel', serif; color: var(--gold-l); margin-bottom: 20px; }
+        .modal-field {
+            margin-bottom: 16px; display: flex; flex-direction: column; gap: 4px;
+        }
+        .modal-field label { font-size: 10px; letter-spacing: 1px; color: var(--muted); }
+        .modal-field input, .modal-field select {
+            background: #2a2a2a; border: 1px solid #55411e; border-radius: 30px;
+            padding: 12px 16px; color: var(--txt); font-size: 14px;
+        }
+        .modal-buttons { display: flex; gap: 12px; margin-top: 24px; }
+        .modal-btn {
+            flex: 1; padding: 14px; border-radius: 40px; border: none; font-weight: 600;
+            background: var(--gold-d); color: black; cursor: pointer;
+        }
+        .modal-btn.delete { background: #5a2a2a; color: #f0b0b0; }
 
-    .table-select {
-      background: rgba(201,168,76,.05); border: 1px solid rgba(201,168,76,.25);
-      border-radius: 20px; padding: 5px 8px; color: var(--gold-l); font-size: 10px;
-      font-weight: 600; font-family: 'Montserrat', sans-serif; cursor: pointer;
-      outline: none; width: 100%;
-    }
-    .table-select option { background: #1a1a1a; color: var(--txt); }
+        /* reservation sections */
+        .sections { display: flex; flex-direction: column; gap: 20px; padding: 0 10px; margin: 20px 0; }
+        @media (min-width: 700px) { .sections { flex-direction: row; } }
+        .section {
+            flex: 1; border-radius: 20px; background: var(--card); border: 1px solid rgba(201,168,76,.18);
+        }
+        .sec-hdr {
+            padding: 16px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(201,168,76,.15);
+        }
+        .inside .sec-hdr { background: linear-gradient(135deg,#200800,#2d1200); }
+        .outside .sec-hdr { background: linear-gradient(135deg,#0a0000,#1f0505); }
+        .s-title { font-family: 'Cinzel', serif; font-size: 18px; color: var(--gold-l); }
+        .s-sub { font-size: 10px; color: var(--muted); }
 
-    .status-badge {
-      font-size: 9px; font-weight: 600; letter-spacing: 0.8px; padding: 5px 8px;
-      border-radius: 20px; text-align: center; background: rgba(155,28,28,.22);
-      color: #f0a0a0; border: 1px solid rgba(155,28,28,.4); outline: none;
-      font-family: 'Montserrat', sans-serif; cursor: pointer;
-    }
-    .status-badge.seated { background: rgba(42,111,75,.25); color: #a0e0b0; border-color: rgba(63,158,111,.5); }
-    .status-badge.no-show { background: rgba(155,28,28,.35); color: #f0a0a0; }
-    .status-badge.confirmed { background: rgba(201,168,76,.15); color: var(--gold-l); border-color: rgba(201,168,76,.4); }
+        .btn-add {
+            background: rgba(201,168,76,.08); border: 1px solid rgba(201,168,76,.2);
+            color: var(--gold); border-radius: 30px; padding: 6px 18px; font-size: 10px; cursor: pointer;
+        }
 
-    .dbtn {
-      background: none; border: none; color: rgba(255,80,80,.3); font-size: 14px;
-      cursor: pointer; padding: 4px; border-radius: 4px; transition: 0.15s;
-    }
-    .dbtn:hover { color: #ff6060; background: rgba(155,28,28,.2); }
+        .glist { background: var(--card); }
+        .grow {
+            display: grid; grid-template-columns: 1fr 50px 90px 70px 1fr 30px; gap: 4px;
+            align-items: center; padding: 12px; border-bottom: 1px solid rgba(255,255,255,.04);
+            font-size: 11px;
+        }
+        .grow input, .grow select {
+            background: transparent; border: none; border-bottom: 1px dashed #3d3d3d;
+            color: var(--txt); padding: 4px 2px; font-size: 10px; width: 100%;
+        }
+        .grow input:focus, .grow select:focus { outline: none; border-bottom-color: var(--gold); }
+        .status-badge {
+            padding: 4px 6px; border-radius: 20px; font-size: 8px; font-weight: 600; text-align: center;
+        }
+        .dbtn { color: #b66; background: none; border: none; cursor: pointer; font-size: 14px; }
 
-    /* stats */
-    .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; padding: 0 20px; margin: 28px 0; }
-    @media (max-width:600px){ .stats{ grid-template-columns: repeat(2,1fr); } }
-    .sc {
-      background: linear-gradient(135deg,#0f0000,#190404); border: 1px solid rgba(201,168,76,.14);
-      border-radius: 10px; padding: 16px 10px; text-align: center;
-    }
-    .sn { font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 600; color: var(--gold); line-height: 1; }
-    .sl { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+        .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; padding: 0 10px; margin: 20px 0; }
+        .sc {
+            background: linear-gradient(135deg,#0f0000,#190404); border: 1px solid rgba(201,168,76,.14);
+            border-radius: 16px; padding: 12px 4px; text-align: center;
+        }
+        .sn { font-family: 'Cormorant Garamond', serif; font-size: 28px; color: var(--gold); }
+        .sl { font-size: 8px; letter-spacing: 1px; color: var(--muted); }
 
-    .orn { text-align: center; font-size: 16px; margin: 20px 0 10px; color: var(--gold-d); letter-spacing: 8px; }
-    .ftxt { text-align: center; font-size: 8px; letter-spacing: 3px; text-transform: uppercase; color: rgba(201,168,76,.22); }
+        .orn { text-align: center; margin: 15px 0; color: var(--gold-d); letter-spacing: 8px; }
+        .ftxt { text-align: center; font-size: 10px; color: rgba(201,168,76,.3); letter-spacing: 3px; }
 
-    #overlay { display: none; position: fixed; inset: 0; background: rgba(10,10,10,.85); z-index: 9999; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
-    #overlay.show { display: flex; }
-    .spin { width: 40px; height: 40px; border-radius: 50%; border: 3px solid rgba(201,168,76,.2); border-top-color: var(--gold); animation: spin .8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .ov-txt { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 3px; color: var(--gold); text-transform: uppercase; }
-  </style>
+        #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; flex-direction: column; }
+        #overlay.show { display: flex; }
+        .spin { width: 40px; height: 40px; border: 3px solid rgba(201,168,76,.2); border-top-color: var(--gold); border-radius: 50%; animation: spin .8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
 </head>
 <body>
 <div id="overlay"><div class="spin"></div><div class="ov-txt">Generating …</div></div>
 
+<!-- MODAL for booking -->
+<div id="bookingModal" class="modal">
+    <div class="modal-card">
+        <h2 id="modalTitle">Table T-<span id="modalTableNum"></span></h2>
+        <div class="modal-field">
+            <label>Customer name</label>
+            <input type="text" id="modalName" placeholder="e.g. Salma" value="">
+        </div>
+        <div class="modal-field">
+            <label>Number of guests</label>
+            <input type="number" id="modalGuests" min="1" value="2">
+        </div>
+        <div class="modal-field">
+            <label>Time</label>
+            <input type="time" id="modalTime" value="19:30">
+        </div>
+        <div class="modal-field">
+            <label>Payment</label>
+            <select id="modalPaid">
+                <option value="paid">PAID</option>
+                <option value="unpaid">UNPAID</option>
+            </select>
+        </div>
+        <div class="modal-buttons">
+            <button class="modal-btn" id="modalSaveBtn">SAVE</button>
+            <button class="modal-btn delete" id="modalDeleteBtn">CLEAR</button>
+        </div>
+        <div style="text-align:center; margin-top:12px">
+            <button class="modal-btn" id="modalCancelBtn" style="background:#333; color:#ccc;">CANCEL</button>
+        </div>
+    </div>
+</div>
+
 <div id="chart">
-  <div class="banner">
-    <span class="b-icon">🏬</span> <span class="b-txt">Somewhere</span> <span class="b-dot">◆</span>
-    <span class="b-txt">Galleria Mall</span> <span class="b-dot">◆</span>
-    <span class="b-txt">3D Reservations</span>
-  </div>
-  <div class="hdr">
-    <div class="hdr-eye">Interactive Floor Plan</div>
-    <h1>Drag <em>& Seat</em></h1>
-    <div class="divider"><span>✦</span></div>
-    <div class="hdr-sub">move tables · assign guests · track status</div>
-    <div class="ts-badge" id="timestamp">just now</div>
-  </div>
-  <div class="actions-bar">
-    <button class="action-btn" onclick="downloadPDF()"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm-7 2h14v2H5v-2z"/></svg> PDF</button>
-    <button class="action-btn" onclick="downloadPNG()"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 19v1H3v-1h18zM8 5h8l2 4H6l2-4zm0-2L4 9v8h16V9l-4-6H8z"/></svg> PNG</button>
-    <button class="action-btn reset-btn" onclick="resetToSample()"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M17.65 6.35A8 8 0 1 0 19 12h-2a6 6 0 1 1-2.23-4.69l2.64-2.64 1.42 1.42-3.54 3.54-3.54-3.54 1.41-1.41L17.65 6.35z"/></svg> Reset</button>
-  </div>
+    <div class="banner">
+        <span class="b-txt">SOMEWHERE</span> <span class="b-dot">◆</span>
+        <span class="b-txt">GALLERIA MALL</span> <span class="b-dot">◆</span>
+        <span class="b-txt">SEATING</span>
+    </div>
+    <div class="hdr">
+        <h1>Table <em>Management</em></h1>
+        <div class="divider"><span>✦</span></div>
+        <div class="ts-badge" id="timestamp">just now</div>
+    </div>
+    <div class="actions-bar">
+        <button class="action-btn" onclick="downloadPDF()">📄 PDF</button>
+        <button class="action-btn" onclick="downloadPNG()">🖼️ PNG</button>
+        <button class="action-btn reset-btn" onclick="resetToSample()">↺ RESET</button>
+    </div>
 
-  <!-- FLOOR PLANS (Inside / Outside) -->
-  <div class="floor-plans" id="floorPlans"></div>
+    <!-- FLOOR PLANS (Inside / Outside) -->
+    <div class="floor-plans" id="floorPlans"></div>
 
-  <!-- RESERVATION SECTIONS -->
-  <div class="sections" id="sectionsContainer"></div>
+    <!-- RESERVATION SECTIONS -->
+    <div class="sections" id="sectionsContainer"></div>
 
-  <div class="stats" id="globalStats">
-    <div class="sc"><div class="sn" id="stat-res">0</div><div class="sl">reservations</div></div>
-    <div class="sc"><div class="sn" id="stat-seated">0</div><div class="sl">seated</div></div>
-    <div class="sc"><div class="sn" id="stat-noshow">0</div><div class="sl">no‑show</div></div>
-    <div class="sc"><div class="sn" id="stat-tables">0</div><div class="sl">tables</div></div>
-  </div>
-  <div class="orn">— ✦ —</div>
-  <div class="ftxt">Somewhere · drag tables to match gallery layouts</div>
+    <div class="stats">
+        <div class="sc"><div class="sn" id="stat-res">0</div><div class="sl">BOOKINGS</div></div>
+        <div class="sc"><div class="sn" id="stat-seated">0</div><div class="sl">SEATED</div></div>
+        <div class="sc"><div class="sn" id="stat-noshow">0</div><div class="sl">NO-SHOW</div></div>
+        <div class="sc"><div class="sn" id="stat-tables">0</div><div class="sl">TABLES</div></div>
+    </div>
+    <div class="orn">— ✦ —</div>
+    <div class="ftxt">LS · luxury seating</div>
 </div>
 
 <script>
-  (function() {
-    // --------------------------------------------------------------
-    //  DATA MODELS (tables + reservations)
-    // --------------------------------------------------------------
-    let tables = { inside: [], outside: [] };   // each { id, number, capacity, position: {x, y} }
-    let reservations = { inside: [], outside: [] };
+    (function() {
+        // ---------- DATA MODELS ----------
+        let tables = { inside: [], outside: [] };
+        let reservations = { inside: [], outside: [] };
 
-    function uid() { return Date.now() + '-' + Math.random().toString(36).substr(2, 9); }
+        function uid() { return Date.now() + '-' + Math.random().toString(36).substr(2, 9); }
 
-    // ----- DEFAULT TABLES from images (with capacity guess) -----
-    const outsideNumbers = [44,42,41,45,46,56,55,53,52,51,50];
-    const insideNumbers  = [37,38,30,19,20,11,18,35,33,32,17,16,14];
+        // ----- FIXED TABLE NUMBERS from images -----
+        const insideNumbers = [11,14,16,17,18,19,20,30,32,33,35,37,38];
+        const outsideNumbers = [41,42,44,45,46,50,51,52,53,54,55,56];
 
-    function createDefaultTables() {
-      const inside = insideNumbers.map(num => ({
-        id: uid(), number: num, capacity: 4,
-        position: { x: 50 + Math.random()*200, y: 50 + Math.random()*150 }
-      }));
-      const outside = outsideNumbers.map(num => ({
-        id: uid(), number: num, capacity: 4,
-        position: { x: 50 + Math.random()*200, y: 50 + Math.random()*150 }
-      }));
-      return { inside, outside };
-    }
-
-    // default reservations (match numbers from sample)
-    function createDefaultReservations(tableList) {
-      const insideTables = tableList.inside;
-      const outsideTables = tableList.outside;
-      return {
-        inside: [
-          { id: uid(), name: 'Salma', partySize: 8, tableId: insideTables.find(t => t.number === 20)?.id || insideTables[0]?.id, status: 'confirmed', notes: 'VIP, prefers corner' },
-          { id: uid(), name: 'Wadha', partySize: 6, tableId: insideTables.find(t => t.number === 32)?.id || insideTables[1]?.id, status: 'seated', notes: 'allergic to nuts' },
-          { id: uid(), name: 'Maythaa', partySize: 4, tableId: insideTables.find(t => t.number === 17)?.id || insideTables[2]?.id, status: 'no-show', notes: 'called to cancel' },
-        ],
-        outside: [
-          { id: uid(), name: 'Bakr', partySize: 5, tableId: outsideTables.find(t => t.number === 54)?.id || outsideTables[3]?.id, status: 'seated', notes: '' },
-          { id: uid(), name: 'Couley', partySize: 5, tableId: outsideTables.find(t => t.number === 55)?.id || outsideTables[4]?.id, status: 'seated', notes: 'anniversary' },
-          { id: uid(), name: 'Noora', partySize: 2, tableId: outsideTables.find(t => t.number === 56)?.id || outsideTables[0]?.id, status: 'confirmed', notes: '' },
-          { id: uid(), name: 'Aysha', partySize: 2, tableId: outsideTables.find(t => t.number === 46)?.id || outsideTables[2]?.id, status: 'confirmed', notes: 'high chair' },
-          { id: uid(), name: 'Sahand', partySize: 3, tableId: outsideTables.find(t => t.number === 45)?.id || outsideTables[1]?.id, status: 'no-show', notes: '' },
-          { id: uid(), name: 'Seem', partySize: 2, tableId: outsideTables.find(t => t.number === 42)?.id || outsideTables[5]?.id, status: 'confirmed', notes: 'window view' },
-        ]
-      };
-    }
-
-    // load or init
-    function loadFromStorage() {
-      const saved = localStorage.getItem('reservationSystem3D');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (parsed.tables && parsed.reservations) {
-            tables = parsed.tables;
-            reservations = parsed.reservations;
-            return;
-          }
-        } catch (e) {}
-      }
-      // fallback: fresh default
-      tables = createDefaultTables();
-      reservations = createDefaultReservations(tables);
-    }
-    loadFromStorage();
-
-    function save() {
-      localStorage.setItem('reservationSystem3D', JSON.stringify({ tables, reservations }));
-      updateTimestamp();
-    }
-
-    function updateTimestamp() {
-      const now = new Date();
-      document.getElementById('timestamp').innerText = `updated ${now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
-    }
-
-    // --------------------------------------------------------------
-    //  RENDERING: floor plans + reservation sections
-    // --------------------------------------------------------------
-    function renderAll() {
-      renderFloorPlans();
-      renderReservationSections();
-      updateStats();
-      save();
-    }
-
-    function renderFloorPlans() {
-      const container = document.getElementById('floorPlans');
-      container.innerHTML = '';
-      ['inside', 'outside'].forEach(zone => {
-        const floorDiv = document.createElement('div');
-        floorDiv.className = 'floor';
-        floorDiv.innerHTML = `<h3>${zone === 'inside' ? '🏛️ Inside' : '🌿 Outside'}</h3>
-          <div class="floor-grid" id="floor-${zone}"></div>
-          <div class="floor-actions">
-            <button class="btn-add-table" onclick="addTable('${zone}')">+ Add table</button>
-          </div>`;
-        container.appendChild(floorDiv);
-
-        const grid = document.getElementById(`floor-${zone}`);
-        // render each table as draggable div
-        tables[zone].forEach(table => {
-          const tableEl = document.createElement('div');
-          tableEl.className = 'table-item';
-          tableEl.setAttribute('data-id', table.id);
-          tableEl.setAttribute('data-zone', zone);
-          tableEl.style.left = (table.position?.x || 50) + 'px';
-          tableEl.style.top = (table.position?.y || 50) + 'px';
-          tableEl.innerHTML = `<span class="table-number">T-${table.number}</span>`;
-          makeDraggable(tableEl, zone, table.id);
-          grid.appendChild(tableEl);
-        });
-      });
-    }
-
-    // Dragging functionality
-    function makeDraggable(el, zone, tableId) {
-      let offsetX, offsetY, startX, startY;
-      const grid = el.parentNode;
-      const dragStart = (e) => {
-        e.preventDefault();
-        if (e.type === 'mousedown') {
-          startX = e.clientX;
-          startY = e.clientY;
-        } else if (e.type === 'touchstart') {
-          startX = e.touches[0].clientX;
-          startY = e.touches[0].clientY;
+        function createDefaultTables() {
+            // Place inside tables in a nice grid (sorted)
+            const inside = insideNumbers.sort((a,b)=>a-b).map((num, idx) => ({
+                id: uid(), number: num, capacity: 4, paid: false,
+                position: { x: 40 + (idx % 4) * 150, y: 40 + Math.floor(idx / 4) * 140 }
+            }));
+            // adjust capacities for some
+            inside.forEach(t => {
+                if ([20,32,17,11,18].includes(t.number)) t.capacity = 4;
+                else if ([16,14,19].includes(t.number)) t.capacity = 2;
+                else if ([37,35,38,33,30].includes(t.number)) t.capacity = 6;
+            });
+            const outside = outsideNumbers.sort((a,b)=>a-b).map((num, idx) => ({
+                id: uid(), number: num, capacity: 4,
+                position: { x: 40 + (idx % 4) * 150, y: 40 + Math.floor(idx / 4) * 140 }
+            }));
+            outside.forEach(t => {
+                if ([42,46,56,50].includes(t.number)) t.capacity = 2;
+                else if ([45,55,54,41,44].includes(t.number)) t.capacity = 6;
+            });
+            return { inside, outside };
         }
-        const rect = el.getBoundingClientRect();
-        const gridRect = grid.getBoundingClientRect();
-        offsetX = startX - rect.left;
-        offsetY = startY - rect.top;
-        el.classList.add('dragging');
-        document.addEventListener('mousemove', dragMove);
-        document.addEventListener('mouseup', dragEnd);
-        document.addEventListener('touchmove', dragMove, { passive: false });
-        document.addEventListener('touchend', dragEnd);
-      };
 
-      const dragMove = (e) => {
-        e.preventDefault();
-        let clientX, clientY;
-        if (e.type === 'mousemove') {
-          clientX = e.clientX;
-          clientY = e.clientY;
-        } else {
-          clientX = e.touches[0].clientX;
-          clientY = e.touches[0].clientY;
+        // Default reservations (some tables occupied)
+        function createDefaultReservations(tableList) {
+            return {
+                inside: [
+                    { id: uid(), name: 'Salma', partySize: 8, tableId: tableList.inside.find(t=>t.number===20)?.id, status: 'confirmed', paid: true, time: '19:30' },
+                    { id: uid(), name: 'Wadha', partySize: 6, tableId: tableList.inside.find(t=>t.number===32)?.id, status: 'seated', paid: true, time: '20:00' },
+                    { id: uid(), name: 'Maythaa', partySize: 4, tableId: tableList.inside.find(t=>t.number===17)?.id, status: 'no-show', paid: false, time: '18:45' },
+                ],
+                outside: [
+                    { id: uid(), name: 'Bakr', partySize: 5, tableId: tableList.outside.find(t=>t.number===45)?.id, status: 'seated', paid: true, time: '19:00' },
+                    { id: uid(), name: 'Couley', partySize: 5, tableId: tableList.outside.find(t=>t.number===55)?.id, status: 'seated', paid: true, time: '19:15' },
+                    { id: uid(), name: 'Noora', partySize: 2, tableId: tableList.outside.find(t=>t.number===56)?.id, status: 'confirmed', paid: true, time: '20:30' },
+                    { id: uid(), name: 'Aysha', partySize: 2, tableId: tableList.outside.find(t=>t.number===46)?.id, status: 'confirmed', paid: false, time: '19:45' },
+                    { id: uid(), name: 'Sahand', partySize: 3, tableId: tableList.outside.find(t=>t.number===45)?.id, status: 'no-show', paid: false, time: '18:30' },
+                    { id: uid(), name: 'Seem', partySize: 2, tableId: tableList.outside.find(t=>t.number===42)?.id, status: 'confirmed', paid: true, time: '21:00' },
+                ]
+            };
         }
-        const gridRect = grid.getBoundingClientRect();
-        let newLeft = clientX - gridRect.left - offsetX;
-        let newTop = clientY - gridRect.top - offsetY;
-        // boundaries
-        newLeft = Math.max(0, Math.min(gridRect.width - el.offsetWidth, newLeft));
-        newTop = Math.max(0, Math.min(gridRect.height - el.offsetHeight, newTop));
-        el.style.left = newLeft + 'px';
-        el.style.top = newTop + 'px';
-      };
 
-      const dragEnd = () => {
-        el.classList.remove('dragging');
-        document.removeEventListener('mousemove', dragMove);
-        document.removeEventListener('mouseup', dragEnd);
-        document.removeEventListener('touchmove', dragMove);
-        document.removeEventListener('touchend', dragEnd);
-        // save new position to table object
-        const table = tables[zone].find(t => t.id === tableId);
-        if (table) {
-          table.position = { x: parseFloat(el.style.left), y: parseFloat(el.style.top) };
-          save();
-        }
-      };
-
-      el.addEventListener('mousedown', dragStart);
-      el.addEventListener('touchstart', dragStart, { passive: false });
-    }
-
-    // Reservation sections (similar to before, but without table strip)
-    function renderReservationSections() {
-      const container = document.getElementById('sectionsContainer');
-      container.innerHTML = '';
-      ['inside', 'outside'].forEach(zone => {
-        const sectionDiv = document.createElement('div');
-        sectionDiv.className = `section ${zone}`;
-        sectionDiv.innerHTML = `
-          <div class="sec-hdr">
-            <div class="sh-l">
-              <div class="s-ico">${zone === 'inside' ? '🏛️' : '🌿'}</div>
-              <div>
-                <div class="s-title">${zone === 'inside' ? 'Inside' : 'Outside'}</div>
-                <div class="s-sub" id="${zone}-sub">${reservations[zone].length} groups</div>
-              </div>
-            </div>
-            <button class="btn-add" onclick="addReservation('${zone}')">＋ Add guest</button>
-          </div>
-          <div class="glist" id="${zone}-list"></div>
-        `;
-        container.appendChild(sectionDiv);
-        const listDiv = document.getElementById(`${zone}-list`);
-        reservations[zone].forEach(res => {
-          listDiv.appendChild(createResRow(zone, res));
-        });
-      });
-    }
-
-    function createResRow(zone, res) {
-      const row = document.createElement('div');
-      row.className = 'grow';
-
-      const nameInput = document.createElement('input');
-      nameInput.className = 'gname';
-      nameInput.value = res.name;
-      nameInput.oninput = (e) => { res.name = e.target.value; save(); };
-
-      const sizeInput = document.createElement('input');
-      sizeInput.type = 'number'; sizeInput.min = 1; sizeInput.className = 'snum';
-      sizeInput.value = res.partySize;
-      sizeInput.oninput = (e) => { res.partySize = +e.target.value || 1; save(); updateStats(); };
-
-      const tableSelect = document.createElement('select');
-      tableSelect.className = 'table-select';
-      const blankOpt = document.createElement('option'); blankOpt.value = ''; blankOpt.textContent = '— table —';
-      tableSelect.appendChild(blankOpt);
-      tables[zone].forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t.id; opt.textContent = `T-${t.number} (${t.capacity})`;
-        if (t.id === res.tableId) opt.selected = true;
-        tableSelect.appendChild(opt);
-      });
-      tableSelect.onchange = (e) => { res.tableId = e.target.value || null; save(); };
-
-      const statusSelect = document.createElement('select');
-      statusSelect.className = `status-badge ${res.status}`;
-      ['confirmed','seated','no-show'].forEach(st => {
-        const opt = document.createElement('option');
-        opt.value = st; opt.textContent = st;
-        if (st === res.status) opt.selected = true;
-        statusSelect.appendChild(opt);
-      });
-      statusSelect.onchange = (e) => { res.status = e.target.value; statusSelect.className = `status-badge ${res.status}`; save(); updateStats(); };
-
-      const notesInput = document.createElement('input');
-      notesInput.type = 'text'; notesInput.className = 'guest-notes'; notesInput.placeholder = 'requests…';
-      notesInput.value = res.notes || '';
-      notesInput.oninput = (e) => { res.notes = e.target.value; save(); };
-
-      const delBtn = document.createElement('button');
-      delBtn.className = 'dbtn'; delBtn.innerHTML = '✕';
-      delBtn.onclick = () => { reservations[zone] = reservations[zone].filter(r => r.id !== res.id); renderAll(); };
-
-      row.appendChild(nameInput);
-      row.appendChild(sizeInput);
-      row.appendChild(tableSelect);
-      row.appendChild(statusSelect);
-      row.appendChild(notesInput);
-      row.appendChild(delBtn);
-      return row;
-    }
-
-    // ----- CRUD -----
-    window.addReservation = (zone) => {
-      reservations[zone].push({ id: uid(), name: 'New guest', partySize: 2, tableId: null, status: 'confirmed', notes: '' });
-      renderAll();
-    };
-
-    window.addTable = (zone) => {
-      const maxNum = tables[zone].length > 0 ? Math.max(...tables[zone].map(t => t.number)) : 0;
-      const newNum = maxNum + 1;
-      const newTable = { id: uid(), number: newNum, capacity: 4, position: { x: 100, y: 100 } };
-      tables[zone].push(newTable);
-      renderAll();
-    };
-
-    window.deleteTable = (zone, tableId) => {
-      // not directly exposed in floor plan but we keep the method; we can add delete button on tables if desired
-    };
-
-    window.resetToSample = () => {
-      if (!confirm('Reset to sample layouts? Your changes will be lost.')) return;
-      tables = createDefaultTables();
-      reservations = createDefaultReservations(tables);
-      renderAll();
-    };
-
-    function updateStats() {
-      const allRes = [...reservations.inside, ...reservations.outside];
-      document.getElementById('stat-res').innerText = allRes.length;
-      document.getElementById('stat-seated').innerText = allRes.filter(r => r.status === 'seated').length;
-      document.getElementById('stat-noshow').innerText = allRes.filter(r => r.status === 'no-show').length;
-      document.getElementById('stat-tables').innerText = tables.inside.length + tables.outside.length;
-
-      document.getElementById('inside-sub') && (document.getElementById('inside-sub').innerText = `${reservations.inside.length} groups`);
-      document.getElementById('outside-sub') && (document.getElementById('outside-sub').innerText = `${reservations.outside.length} groups`);
-    }
-
-    // ----- EXPORT (same as before) -----
-    async function capture(mode) {
-      const overlay = document.getElementById('overlay');
-      overlay.classList.add('show');
-      const chart = document.getElementById('chart');
-      chart.classList.add('capture-mode');
-      try {
-        const canvas = await html2canvas(chart, { scale: 2, backgroundColor: '#0a0a0a', logging: false });
-        if (mode === 'png') {
-          const link = document.createElement('a');
-          link.download = `seating-${new Date().toISOString().slice(0,10)}.png`;
-          link.href = canvas.toDataURL('image/png');
-          link.click();
-        } else {
-          const { jsPDF } = window.jspdf;
-          const imgData = canvas.toDataURL('image/jpeg', 0.95);
-          const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-          const pageW = pdf.internal.pageSize.getWidth();
-          const pageH = pdf.internal.pageSize.getHeight();
-          const ratio = canvas.height / canvas.width;
-          const imgH = pageW * ratio;
-          if (imgH <= pageH) pdf.addImage(imgData, 'JPEG', 0, 0, pageW, imgH);
-          else {
-            let y = 0;
-            while (y < imgH) {
-              if (y > 0) pdf.addPage();
-              pdf.addImage(imgData, 'JPEG', 0, -y, pageW, imgH);
-              y += pageH;
+        function loadFromStorage() {
+            const saved = localStorage.getItem('SeatingFinalLSv2');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.tables && parsed.reservations) {
+                        tables = parsed.tables;
+                        reservations = parsed.reservations;
+                        return;
+                    }
+                } catch (e) {}
             }
-          }
-          pdf.save(`reservations-${new Date().toISOString().slice(0,10)}.pdf`);
+            tables = createDefaultTables();
+            reservations = createDefaultReservations(tables);
         }
-      } catch (e) { alert('Export failed'); console.error(e); }
-      chart.classList.remove('capture-mode');
-      overlay.classList.remove('show');
-    }
+        loadFromStorage();
 
-    window.downloadPDF = () => capture('pdf');
-    window.downloadPNG = () => capture('png');
+        function save() {
+            localStorage.setItem('SeatingFinalLSv2', JSON.stringify({ tables, reservations }));
+            updateTimestamp();
+        }
 
-    // initial render
-    renderAll();
-  })();
+        function updateTimestamp() {
+            const now = new Date();
+            document.getElementById('timestamp').innerText = `updated ${now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+        }
+
+        // ---------- MODAL LOGIC ----------
+        let currentModalZone = null, currentModalTableId = null;
+
+        function openModal(zone, tableId) {
+            currentModalZone = zone; currentModalTableId = tableId;
+            const table = tables[zone].find(t => t.id === tableId);
+            if (!table) return;
+            document.getElementById('modalTableNum').innerText = table.number;
+            // find existing reservation for this table
+            const existing = reservations[zone].find(r => r.tableId === tableId);
+            document.getElementById('modalName').value = existing ? existing.name : '';
+            document.getElementById('modalGuests').value = existing ? existing.partySize : table.capacity;
+            document.getElementById('modalTime').value = existing ? (existing.time || '19:30') : '19:30';
+            document.getElementById('modalPaid').value = existing ? (existing.paid ? 'paid' : 'unpaid') : 'unpaid';
+            document.getElementById('bookingModal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('bookingModal').classList.remove('show');
+            currentModalZone = null; currentModalTableId = null;
+        }
+
+        // Save from modal
+        document.getElementById('modalSaveBtn').addEventListener('click', () => {
+            if (!currentModalZone || !currentModalTableId) return;
+            const zone = currentModalZone;
+            const tableId = currentModalTableId;
+            const name = document.getElementById('modalName').value.trim();
+            const guests = parseInt(document.getElementById('modalGuests').value, 10) || 1;
+            const time = document.getElementById('modalTime').value;
+            const paid = document.getElementById('modalPaid').value === 'paid';
+
+            const existingIndex = reservations[zone].findIndex(r => r.tableId === tableId);
+            if (existingIndex >= 0) {
+                // update
+                reservations[zone][existingIndex].name = name || 'Guest';
+                reservations[zone][existingIndex].partySize = guests;
+                reservations[zone][existingIndex].time = time;
+                reservations[zone][existingIndex].paid = paid;
+            } else {
+                // create new reservation
+                reservations[zone].push({
+                    id: uid(), name: name || 'Guest', partySize: guests, tableId: tableId,
+                    status: 'confirmed', paid: paid, time: time
+                });
+            }
+            renderAll();
+            closeModal();
+        });
+
+        // Delete / clear
+        document.getElementById('modalDeleteBtn').addEventListener('click', () => {
+            if (!currentModalZone || !currentModalTableId) return;
+            const zone = currentModalZone;
+            const tableId = currentModalTableId;
+            reservations[zone] = reservations[zone].filter(r => r.tableId !== tableId);
+            renderAll();
+            closeModal();
+        });
+
+        document.getElementById('modalCancelBtn').addEventListener('click', closeModal);
+
+        // ---------- RENDER FLOOR PLANS (numerically arranged) ----------
+        function renderAll() {
+            renderFloorPlans();
+            renderReservationSections();
+            updateStats();
+            save();
+        }
+
+        function renderFloorPlans() {
+            const container = document.getElementById('floorPlans');
+            container.innerHTML = '';
+            ['inside', 'outside'].forEach(zone => {
+                const floorDiv = document.createElement('div');
+                floorDiv.className = 'floor';
+                floorDiv.innerHTML = `<h3>${zone === 'inside' ? '🏛️ INSIDE' : '🌿 OUTSIDE'}</h3>
+                    <div class="floor-grid" id="floor-${zone}"></div>
+                    <div class="floor-actions">
+                        <div class="add-table-panel">
+                            <select id="pax-${zone}">
+                                <option value="2">2 pax</option>
+                                <option value="4" selected>4 pax</option>
+                                <option value="6">6 pax</option>
+                                <option value="8">8 pax</option>
+                            </select>
+                            <button class="btn-add-table" onclick="addTableWithSize('${zone}')">+ Add table</button>
+                        </div>
+                    </div>`;
+                container.appendChild(floorDiv);
+                const grid = document.getElementById(`floor-${zone}`);
+                // sort numerically by table number
+                const sortedTables = [...tables[zone]].sort((a,b) => a.number - b.number);
+                // reposition in grid if needed (but keep saved positions)
+                sortedTables.forEach((table, idx) => {
+                    // if position is way out of bounds, reassign (but keep saved if reasonable)
+                    if (!table.position || table.position.x < 10 || table.position.y < 10) {
+                        table.position = { x: 40 + (idx % 4) * 150, y: 40 + Math.floor(idx / 4) * 140 };
+                    }
+                });
+
+                sortedTables.forEach(table => {
+                    const tableEl = document.createElement('div');
+                    tableEl.className = 'table-item';
+                    tableEl.setAttribute('data-id', table.id);
+                    tableEl.setAttribute('data-zone', zone);
+                    tableEl.setAttribute('data-capacity', table.capacity);
+                    tableEl.style.left = (table.position?.x || 60) + 'px';
+                    tableEl.style.top = (table.position?.y || 60) + 'px';
+
+                    // Find if this table has a reservation
+                    const res = reservations[zone].find(r => r.tableId === table.id);
+                    const customerName = res ? res.name : '';
+                    const guestCount = res ? res.partySize : '';
+                    const paidText = res ? (res.paid ? 'PAID' : 'UNPAID') : '';
+                    
+                    tableEl.innerHTML = `
+                        <div class="table-number">T-${table.number}</div>
+                        ${customerName ? `<div class="booking-info">${customerName} (${guestCount})</div>` : ''}
+                        ${paidText ? `<div class="paid-status ${res.paid ? 'paid' : 'unpaid'}">${paidText}</div>` : ''}
+                    `;
+                    grid.appendChild(tableEl);
+                    makeDraggable(tableEl, zone, table.id);
+                    // tap to open modal
+                    tableEl.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openModal(zone, table.id);
+                    });
+                });
+            });
+        }
+
+        // Dragging (same as before)
+        function makeDraggable(el, zone, tableId) {
+            let startX, startY, startLeft, startTop, isDragging = false;
+            const grid = el.parentNode;
+
+            function onPointerDown(e) {
+                e.preventDefault();
+                const pointer = e.touches ? e.touches[0] : e;
+                startX = pointer.clientX; startY = pointer.clientY;
+                const rect = el.getBoundingClientRect();
+                const gridRect = grid.getBoundingClientRect();
+                startLeft = rect.left - gridRect.left;
+                startTop = rect.top - gridRect.top;
+                isDragging = true;
+                el.classList.add('dragging');
+                window.addEventListener('pointermove', onPointerMove);
+                window.addEventListener('pointerup', onPointerUp);
+                window.addEventListener('pointercancel', onPointerUp);
+            }
+
+            function onPointerMove(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                const pointer = e.touches ? e.touches[0] : e;
+                const dx = pointer.clientX - startX;
+                const dy = pointer.clientY - startY;
+                const gridRect = grid.getBoundingClientRect();
+                let newLeft = startLeft + dx;
+                let newTop = startTop + dy;
+                newLeft = Math.max(0, Math.min(gridRect.width - el.offsetWidth, newLeft));
+                newTop = Math.max(0, Math.min(gridRect.height - el.offsetHeight, newTop));
+                el.style.left = newLeft + 'px';
+                el.style.top = newTop + 'px';
+            }
+
+            function onPointerUp() {
+                if (isDragging) {
+                    isDragging = false;
+                    el.classList.remove('dragging');
+                    const table = tables[zone].find(t => t.id === tableId);
+                    if (table) {
+                        table.position = { x: parseFloat(el.style.left) || 0, y: parseFloat(el.style.top) || 0 };
+                        save();
+                    }
+                }
+                window.removeEventListener('pointermove', onPointerMove);
+                window.removeEventListener('pointerup', onPointerUp);
+                window.removeEventListener('pointercancel', onPointerUp);
+            }
+            el.addEventListener('pointerdown', onPointerDown);
+            el.addEventListener('dragstart', (e) => e.preventDefault());
+        }
+
+        // Reservation sections (simplified list)
+        function renderReservationSections() {
+            const container = document.getElementById('sectionsContainer');
+            container.innerHTML = '';
+            ['inside', 'outside'].forEach(zone => {
+                const sectionDiv = document.createElement('div');
+                sectionDiv.className = `section ${zone}`;
+                sectionDiv.innerHTML = `
+                    <div class="sec-hdr">
+                        <div>
+                            <div class="s-title">${zone === 'inside' ? 'INSIDE' : 'OUTSIDE'}</div>
+                            <div class="s-sub" id="${zone}-sub">${reservations[zone].length} groups</div>
+                        </div>
+                        <button class="btn-add" onclick="addEmptyReservation('${zone}')">+ Add guest</button>
+                    </div>
+                    <div class="glist" id="${zone}-list"></div>
+                `;
+                container.appendChild(sectionDiv);
+                const listDiv = document.getElementById(`${zone}-list`);
+                reservations[zone].forEach(res => {
+                    listDiv.appendChild(createResRow(zone, res));
+                });
+            });
+        }
+
+        function createResRow(zone, res) {
+            const row = document.createElement('div');
+            row.className = 'grow';
+
+            const nameSpan = document.createElement('span'); nameSpan.textContent = res.name;
+            const sizeSpan = document.createElement('span'); sizeSpan.textContent = res.partySize;
+            const table = tables[zone].find(t => t.id === res.tableId);
+            const tableSpan = document.createElement('span'); tableSpan.textContent = table ? `T-${table.number}` : '—';
+            const statusSpan = document.createElement('span'); statusSpan.textContent = res.status;
+            const paidSpan = document.createElement('span'); paidSpan.textContent = res.paid ? 'PAID' : 'UNPAID';
+            const delBtn = document.createElement('button'); delBtn.textContent = '✕'; delBtn.className = 'dbtn';
+            delBtn.onclick = () => { reservations[zone] = reservations[zone].filter(r => r.id !== res.id); renderAll(); };
+
+            row.appendChild(nameSpan);
+            row.appendChild(sizeSpan);
+            row.appendChild(tableSpan);
+            row.appendChild(statusSpan);
+            row.appendChild(paidSpan);
+            row.appendChild(delBtn);
+            return row;
+        }
+
+        // ----- CRUD -----
+        window.addEmptyReservation = (zone) => {
+            reservations[zone].push({ id: uid(), name: 'Guest', partySize: 2, tableId: null, status: 'confirmed', paid: false, time: '19:30' });
+            renderAll();
+        };
+
+        window.addTableWithSize = (zone) => {
+            const select = document.getElementById(`pax-${zone}`);
+            const capacity = parseInt(select.value, 10);
+            const maxNum = tables[zone].length > 0 ? Math.max(...tables[zone].map(t => t.number)) : 0;
+            const newNum = maxNum + 1;
+            // find free space
+            let baseX = 60, baseY = 60;
+            for (let attempt = 0; attempt < 30; attempt++) {
+                baseX = 40 + (attempt * 40) % 350;
+                baseY = 40 + Math.floor(attempt / 8) * 120;
+                const collision = tables[zone].some(t => {
+                    const dx = (t.position?.x || 0) - baseX;
+                    const dy = (t.position?.y || 0) - baseY;
+                    return Math.abs(dx) < 90 && Math.abs(dy) < 90;
+                });
+                if (!collision) break;
+            }
+            const newTable = { id: uid(), number: newNum, capacity: capacity, position: { x: baseX, y: baseY } };
+            tables[zone].push(newTable);
+            renderAll();
+        };
+
+        window.resetToSample = () => {
+            if (!confirm('Reset to default layout?')) return;
+            tables = createDefaultTables();
+            reservations = createDefaultReservations(tables);
+            renderAll();
+        };
+
+        function updateStats() {
+            const allRes = [...reservations.inside, ...reservations.outside];
+            document.getElementById('stat-res').innerText = allRes.length;
+            document.getElementById('stat-seated').innerText = allRes.filter(r => r.status === 'seated').length;
+            document.getElementById('stat-noshow').innerText = allRes.filter(r => r.status === 'no-show').length;
+            document.getElementById('stat-tables').innerText = tables.inside.length + tables.outside.length;
+            const insideSub = document.getElementById('inside-sub');
+            const outsideSub = document.getElementById('outside-sub');
+            if (insideSub) insideSub.innerText = `${reservations.inside.length} groups`;
+            if (outsideSub) outsideSub.innerText = `${reservations.outside.length} groups`;
+        }
+
+        // ----- EXPORT -----
+        async function capture(mode) {
+            const overlay = document.getElementById('overlay');
+            overlay.classList.add('show');
+            const chart = document.getElementById('chart');
+            chart.classList.add('capture-mode');
+            try {
+                const canvas = await html2canvas(chart, { scale: 2, backgroundColor: '#0a0a0a', logging: false });
+                if (mode === 'png') {
+                    const link = document.createElement('a');
+                    link.download = `seating-${new Date().toISOString().slice(0,10)}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                } else {
+                    const { jsPDF } = window.jspdf;
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                    const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+                    const pageW = pdf.internal.pageSize.getWidth();
+                    const pageH = pdf.internal.pageSize.getHeight();
+                    const ratio = canvas.height / canvas.width;
+                    const imgH = pageW * ratio;
+                    if (imgH <= pageH) pdf.addImage(imgData, 'JPEG', 0, 0, pageW, imgH);
+                    else {
+                        let y = 0;
+                        while (y < imgH) {
+                            if (y > 0) pdf.addPage();
+                            pdf.addImage(imgData, 'JPEG', 0, -y, pageW, imgH);
+                            y += pageH;
+                        }
+                    }
+                    pdf.save(`reservations-${new Date().toISOString().slice(0,10)}.pdf`);
+                }
+            } catch (e) { alert('Export failed'); console.error(e); }
+            chart.classList.remove('capture-mode');
+            overlay.classList.remove('show');
+        }
+
+        window.downloadPDF = () => capture('pdf');
+        window.downloadPNG = () => capture('png');
+
+        renderAll();
+    })();
 </script>
 </body>
-</html>
+  </html>
