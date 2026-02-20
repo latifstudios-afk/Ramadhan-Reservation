@@ -1,9 +1,9 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Somewhere · Galleria Mall</title>
+    <title>Somewhere · Galleria · Reservation Chart</title>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Cinzel:wght@400;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -14,8 +14,8 @@
             --red: #9B1C1C; --red-b: #C0392B;
             --blk: #0a0a0a; --card: #111111;
             --txt: #F5EDD8; --muted: rgba(245,237,216,0.42);
-            --green: #2a6f4b; --green-b: #3f9e6f;
-            --table-wood: #b57c48; --table-dark: #6b4f2e;
+            --green: #2a6f4b;
+            --table-wood: #b57c48;
         }
         body {
             font-family: 'Montserrat', sans-serif; background: var(--blk); color: var(--txt);
@@ -24,7 +24,7 @@
         }
         #chart { max-width: 1400px; margin: 0 auto; }
         
-        /* capture mode - now we have two export modes, but keep for PNG/PDF of whole UI */
+        /* capture mode */
         #chart.capture-mode .dbtn, #chart.capture-mode .btn-add, #chart.capture-mode .btn-add-table,
         #chart.capture-mode .action-btn, #chart.capture-mode .guest-notes,
         #chart.capture-mode input, #chart.capture-mode select,
@@ -75,37 +75,37 @@
             background-size: 50px 50px; overflow: hidden; touch-action: none;
         }
 
-        /* table card base – all same size 110x110, shape via clip-path/border-radius */
+        /* table card – all same small size (80x80) */
         .table-item {
             position: absolute; cursor: pointer; user-select: none;
             background: var(--table-wood); 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             font-weight: bold; color: white; text-shadow: 0 2px 3px black;
-            box-shadow: 0 10px 0 #4f3e28, 0 16px 20px rgba(0,0,0,0.7);
-            border-bottom: 4px solid #ab7e4a; transition: 0.1s;
-            will-change: left, top; touch-action: none; padding: 8px 4px;
-            font-size: 11px; line-height: 1.3;
-            width: 110px; height: 110px; /* fixed small size */
+            box-shadow: 0 8px 0 #4f3e28, 0 12px 16px rgba(0,0,0,0.7);
+            border-bottom: 3px solid #ab7e4a; transition: 0.1s;
+            will-change: left, top; touch-action: none; padding: 4px 2px;
+            font-size: 10px; line-height: 1.2;
+            width: 80px; height: 80px; /* fixed small size */
         }
         .table-item:active { filter: brightness(1.1); transform: scale(1.01); }
-        /* shape classes */
-        .table-item.shape-square { border-radius: 8px; }
-        .table-item.shape-rectangle { border-radius: 4px; transform: scaleX(1.2) scaleY(0.9); /* maintain area approx */ }
+        /* shape classes – all within 80x80 */
+        .table-item.shape-square { border-radius: 6px; }
+        .table-item.shape-rectangle { border-radius: 2px; } /* rectangle illusion */
         .table-item.shape-circle { border-radius: 50%; }
         .table-item.shape-oval { border-radius: 50% / 30%; }
 
         .table-number {
-            background: rgba(0,0,0,0.7); padding: 4px 10px; border-radius: 30px;
-            font-size: 13px; color: var(--gold-l); border: 1px solid #b48b4a; margin-bottom: 4px;
+            background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 20px;
+            font-size: 11px; color: var(--gold-l); border: 1px solid #b48b4a; margin-bottom: 2px;
         }
         .booking-info {
-            background: rgba(0,0,0,0.6); border-radius: 20px; padding: 4px 8px;
-            width: 90%; text-align: center; margin: 2px 0; font-size: 9px;
+            background: rgba(0,0,0,0.6); border-radius: 12px; padding: 2px 4px;
+            width: 95%; text-align: center; margin: 2px 0; font-size: 8px;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .paid-status {
-            font-weight: 700; padding: 2px 8px; border-radius: 20px;
-            background: rgba(0,0,0,0.5); margin-top: 4px;
+            font-weight: 700; padding: 2px 6px; border-radius: 12px;
+            background: rgba(0,0,0,0.5); margin-top: 2px; font-size: 8px;
         }
         .paid-status.paid { color: #a0e0a0; }
         .paid-status.unpaid { color: #f0a0a0; }
@@ -226,7 +226,7 @@
             </select>
         </div>
         <div class="modal-field">
-            <label>Table shape</label>
+            <label>Table nature</label>
             <select id="modalShape">
                 <option value="square">Square</option>
                 <option value="rectangle">Rectangle</option>
@@ -248,7 +248,7 @@
     <div class="banner">
         <span class="b-txt">SOMEWHERE</span> <span class="b-dot">◆</span>
         <span class="b-txt">GALLERIA MALL</span> <span class="b-dot">◆</span>
-        <span class="b-txt">SHAPE TABLES</span>
+        <span class="b-txt">Reservations Chart</span>
     </div>
     <div class="hdr">
         <h1>Table <em>Manager</em></h1>
@@ -275,7 +275,7 @@
         <div class="sc"><div class="sn" id="stat-tables">0</div><div class="sl">TABLES</div></div>
     </div>
     <div class="orn">— ✦ —</div>
-    <div class="ftxt">LS · luxury seating · shapes</div>
+    <div class="ftxt">LS · Luxury Seating Simplified</div>
 </div>
 
 <script>
@@ -294,7 +294,7 @@
             const inside = insideNumbers.sort((a,b)=>a-b).map((num, idx) => ({
                 id: uid(), number: num, capacity: 4, paid: false,
                 shape: ['square','rectangle','circle','oval'][idx % 4],
-                position: { x: 40 + (idx % 4) * 150, y: 40 + Math.floor(idx / 4) * 140 }
+                position: { x: 40 + (idx % 4) * 130, y: 40 + Math.floor(idx / 4) * 120 } // closer together due to smaller tables
             }));
             // adjust capacities
             inside.forEach(t => {
@@ -305,7 +305,7 @@
             const outside = outsideNumbers.sort((a,b)=>a-b).map((num, idx) => ({
                 id: uid(), number: num, capacity: 4,
                 shape: ['square','rectangle','circle','oval'][idx % 4],
-                position: { x: 40 + (idx % 4) * 150, y: 40 + Math.floor(idx / 4) * 140 }
+                position: { x: 40 + (idx % 4) * 130, y: 40 + Math.floor(idx / 4) * 120 }
             }));
             outside.forEach(t => {
                 if ([42,46,56,50].includes(t.number)) t.capacity = 2;
@@ -322,18 +322,18 @@
                     { id: uid(), name: 'Maythaa', partySize: 4, tableId: tableList.inside.find(t=>t.number===17)?.id, status: 'no-show', paid: false, time: '18:45' },
                 ],
                 outside: [
-                    { id: uid(), name: 'Bakr', partySize: 5, tableId: tableList.outside.find(t=>t.number===45)?.id, status: 'seated', paid: true, time: '19:00' },
-                    { id: uid(), name: 'Couley', partySize: 5, tableId: tableList.outside.find(t=>t.number===55)?.id, status: 'seated', paid: true, time: '19:15' },
-                    { id: uid(), name: 'Noora', partySize: 2, tableId: tableList.outside.find(t=>t.number===56)?.id, status: 'confirmed', paid: true, time: '20:30' },
-                    { id: uid(), name: 'Aysha', partySize: 2, tableId: tableList.outside.find(t=>t.number===46)?.id, status: 'confirmed', paid: false, time: '19:45' },
-                    { id: uid(), name: 'Sahand', partySize: 3, tableId: tableList.outside.find(t=>t.number===45)?.id, status: 'no-show', paid: false, time: '18:30' },
+                    { id: uid(), name: 'Baker', partySize: 5, tableId: tableList.outside.find(t=>t.number===45)?.id, status: 'seated', paid: true, time: '19:00' },
+                    { id: uid(), name: 'Suleiman', partySize: 5, tableId: tableList.outside.find(t=>t.number===55)?.id, status: 'seated', paid: true, time: '19:15' },
+                    { id: uid(), name: 'Noorah', partySize: 2, tableId: tableList.outside.find(t=>t.number===56)?.id, status: 'confirmed', paid: true, time: '20:30' },
+                    { id: uid(), name: 'Aisha', partySize: 2, tableId: tableList.outside.find(t=>t.number===46)?.id, status: 'confirmed', paid: false, time: '19:45' },
+                    { id: uid(), name: 'Shahad', partySize: 3, tableId: tableList.outside.find(t=>t.number===45)?.id, status: 'no-show', paid: false, time: '18:30' },
                     { id: uid(), name: 'Seem', partySize: 2, tableId: tableList.outside.find(t=>t.number===42)?.id, status: 'confirmed', paid: true, time: '21:00' },
                 ]
             };
         }
 
         function loadFromStorage() {
-            const saved = localStorage.getItem('SeatingFinalShapes');
+            const saved = localStorage.getItem('SeatingCompactShapes');
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
@@ -350,7 +350,7 @@
         loadFromStorage();
 
         function save() {
-            localStorage.setItem('SeatingFinalShapes', JSON.stringify({ tables, reservations }));
+            localStorage.setItem('SeatingCompactShapes', JSON.stringify({ tables, reservations }));
             updateTimestamp();
         }
 
@@ -391,7 +391,6 @@
             const paid = document.getElementById('modalPaid').value === 'paid';
             const shape = document.getElementById('modalShape').value;
 
-            // update table shape
             const table = tables[zone].find(t => t.id === tableId);
             if (table) table.shape = shape;
 
@@ -459,9 +458,7 @@
                 const grid = document.getElementById(`floor-${zone}`);
                 const sortedTables = [...tables[zone]].sort((a,b) => a.number - b.number);
                 sortedTables.forEach(table => {
-                    if (!table.position || table.position.x < 10 || table.position.y < 10) {
-                        // reassign (should not happen)
-                    }
+                    if (!table.position) table.position = { x: 60, y: 60 };
                     const tableEl = document.createElement('div');
                     tableEl.className = `table-item shape-${table.shape || 'square'}`;
                     tableEl.setAttribute('data-id', table.id);
@@ -602,11 +599,11 @@
             let baseX = 60, baseY = 60;
             for (let attempt = 0; attempt < 30; attempt++) {
                 baseX = 40 + (attempt * 40) % 350;
-                baseY = 40 + Math.floor(attempt / 8) * 120;
+                baseY = 40 + Math.floor(attempt / 8) * 100;
                 const collision = tables[zone].some(t => {
                     const dx = (t.position?.x || 0) - baseX;
                     const dy = (t.position?.y || 0) - baseY;
-                    return Math.abs(dx) < 90 && Math.abs(dy) < 90;
+                    return Math.abs(dx) < 70 && Math.abs(dy) < 70; // smaller collision radius
                 });
                 if (!collision) break;
             }
@@ -634,7 +631,7 @@
             if (outsideSub) outsideSub.innerText = `${reservations.outside.length} groups`;
         }
 
-        // ----- EXPORT FULL UI (same as before) -----
+        // ----- EXPORT FULL UI -----
         async function capture(mode) {
             const overlay = document.getElementById('overlay');
             overlay.classList.add('show');
@@ -671,7 +668,7 @@
             overlay.classList.remove('show');
         }
 
-        // ----- EXPORT RESERVATION LIST (only details) -----
+        // ----- EXPORT RESERVATION LIST (spreadsheet style) -----
         window.exportReservations = () => {
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
@@ -680,18 +677,31 @@
             pdf.text('Reservation Details', 20, y);
             y += 10;
             pdf.setFontSize(10);
+            // Headers
+            const headers = ['Section', 'Name', 'Guests', 'Table', 'Status', 'Payment'];
+            const colX = [20, 50, 85, 115, 145, 180]; // approximate positions
+            pdf.setFont('helvetica', 'bold');
+            headers.forEach((h, i) => pdf.text(h, colX[i], y));
+            pdf.setFont('helvetica', 'normal');
+            y += 6;
+
             ['inside', 'outside'].forEach(zone => {
-                pdf.text(zone.toUpperCase(), 20, y);
-                y += 6;
                 reservations[zone].forEach(res => {
+                    if (y > 270) { pdf.addPage(); y = 20; pdf.setFont('helvetica', 'bold'); headers.forEach((h, i) => pdf.text(h, colX[i], y)); pdf.setFont('helvetica', 'normal'); y += 6; }
                     const table = tables[zone].find(t => t.id === res.tableId);
-                    const tableNum = table ? `T-${table.number}` : 'No table';
-                    const line = `${res.name} | ${res.partySize} guests | ${tableNum} | ${res.status} | ${res.paid ? 'PAID' : 'UNPAID'}`;
-                    if (y > 280) { pdf.addPage(); y = 20; }
-                    pdf.text(line, 25, y);
+                    const tableNum = table ? `T-${table.number}` : '—';
+                    const row = [
+                        zone === 'inside' ? 'Inside' : 'Outside',
+                        res.name,
+                        res.partySize.toString(),
+                        tableNum,
+                        res.status,
+                        res.paid ? 'PAID' : 'UNPAID'
+                    ];
+                    row.forEach((text, i) => pdf.text(text, colX[i], y));
                     y += 6;
                 });
-                y += 4;
+                y += 2;
             });
             pdf.save('reservation-list.pdf');
         };
