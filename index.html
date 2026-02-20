@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seating · Somewhere Galleria (revamped)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Cinzel:wght@400;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#C9A84C;--gold-l:#E8C97A;--gold-d:#8a6a2a;
+  --red:#9B1C1C;--red-b:#C0392B;
+  --blk:#0a0a0a;--card:#111111;
+  --txt:#F5EDD8;--muted:rgba(245,237,216,0.42);
+}
+body{
+  font-family:'Montserrat',sans-serif;
+  background:var(--blk);color:var(--txt);
+  min-height:100vh;
+  background-image:
+    radial-gradient(ellipse 80% 45% at 50% 0%,rgba(155,28,28,.18) 0%,transparent 70%),
+    radial-gradient(ellipse 50% 30% at 5%  100%,rgba(201,168,76,.07) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 30% at 95% 100%,rgba(201,168,76,.07) 0%,transparent 60%);
+}
+
+/* chart container */
+#chart{ max-width:900px; margin:0 auto; padding:0 0 40px; transition: filter 0.2s; }
+
+/* ----- CAPTURE MODE (for clean export) ----- */
+#chart.capture-mode .dbtn,
+#chart.capture-mode .btn-add,
+#chart.capture-mode .dl-wrap,
+#chart.capture-mode .action-btn { display: none !important; }
+
+#chart.capture-mode input,
+#chart.capture-mode .gname,
+#chart.capture-mode .snum,
+#chart.capture-mode .tbadge {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 2px 4px !important;
+  color: inherit !important;
+  font: inherit !important;
+  outline: none !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  resize: none;
+}
+#chart.capture-mode .tbadge {
+  /* keep subtle badge colour but without border */
+  background: rgba(155,28,28,.15) !important;
+  color: #f0b0b0 !important;
+  border: 1px solid rgba(155,28,28,.2) !important;
+}
+#chart.capture-mode .snum { text-align: center; } 
+#chart.capture-mode .sw .slbl { opacity: 0.7; } /* keep labels */
+
+/* banner, header etc unchanged */
+.banner{
+  background:linear-gradient(135deg,#1a0000 0%,#2a0808 50%,#1a0000 100%);
+  border-bottom:2px solid var(--gold-d);
+  padding:16px 32px;
+  display:flex;align-items:center;justify-content:center;
+  gap:12px;flex-wrap:wrap;
+}
+.b-icon{font-size:20px}
+.b-txt{
+  font-family:'Cinzel',serif;font-size:clamp(10px,2vw,13px);
+  font-weight:600;letter-spacing:4px;color:var(--gold-l);text-transform:uppercase;
+}
+.b-dot{color:var(--red-b);font-size:10px}
+
+/* header */
+.hdr{text-align:center;padding:44px 20px 20px}
+.hdr-eye{
+  font-family:'Cinzel',serif;font-size:10px;font-weight:600;
+  letter-spacing:6px;color:var(--gold);opacity:.75;
+  margin-bottom:12px;text-transform:uppercase;
+}
+.hdr h1{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(40px,8vw,72px);font-weight:300;
+  letter-spacing:4px;color:var(--txt);line-height:1;margin-bottom:4px;
+}
+.hdr h1 em{font-style:italic;color:var(--gold)}
+.divider{
+  display:flex;align-items:center;justify-content:center;
+  gap:14px;margin:12px auto 10px;max-width:300px;
+}
+.divider::before,.divider::after{content:'';flex:1;height:1px}
+.divider::before{background:linear-gradient(to right,transparent,var(--gold-d))}
+.divider::after {background:linear-gradient(to left, transparent,var(--gold-d))}
+.divider span{color:var(--gold);font-size:12px}
+.hdr-sub{
+  font-family:'Cinzel',serif;font-size:10px;
+  letter-spacing:3px;color:var(--muted);text-transform:uppercase;
+}
+.ts-badge {
+  margin-top: 12px;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--gold);
+  opacity: 0.7;
+}
+
+/* action buttons (download, png, reset) */
+.actions-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 0 20px 30px;
+}
+.action-btn {
+  font-family:'Cinzel',serif; font-size:11px; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase;
+  padding:10px 22px; border-radius:2px; cursor:pointer;
+  background:linear-gradient(135deg,var(--gold-d),var(--gold));
+  color:#0a0a0a; border:none; box-shadow:0 0 20px rgba(201,168,76,.2);
+  transition:filter .2s,transform .2s; display:inline-flex; align-items:center; gap:8px;
+}
+.action-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.action-btn.reset-btn { background:linear-gradient(135deg,#3b2b2b,#2a1a1a); color:#dac08a; box-shadow:none; }
+.action-btn.reset-btn:hover{background:#3f2e2e}
+.action-btn svg{width:14px;height:14px;fill:currentColor;}
+
+/* sections grid */
+.sections{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:24px;padding:0 20px;margin-bottom:28px;
+}
+@media(max-width:620px){.sections{grid-template-columns:1fr}}
+
+.section{
+  border-radius:12px;overflow:hidden;
+  border:1px solid rgba(201,168,76,.18);
+  box-shadow:0 0 36px rgba(0,0,0,.55);
+}
+.sec-hdr{
+  padding:18px 22px 14px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  border-bottom:1px solid rgba(201,168,76,.15);
+}
+.inside  .sec-hdr{background:linear-gradient(135deg,#200800,#2d1200,#1a0800)}
+.outside .sec-hdr{background:linear-gradient(135deg,#0a0000,#1f0505,#110000)}
+.sh-l{display:flex;align-items:center;gap:11px}
+.s-ico{
+  width:38px;height:38px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+  background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.18);flex-shrink:0;
+}
+.s-title{
+  font-family:'Cinzel',serif;font-size:17px;font-weight:600;
+  letter-spacing:3px;color:var(--gold-l);
+}
+.s-sub{font-size:10px;letter-spacing:1.5px;color:var(--muted);margin-top:2px}
+
+.btn-add{
+  font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
+  padding:6px 12px;border-radius:4px;cursor:pointer;
+  background:rgba(201,168,76,.08);color:var(--gold);
+  border:1px solid rgba(201,168,76,.2);font-family:'Montserrat',sans-serif;
+  opacity:0;transition:opacity .2s,background .2s;
+}
+.sec-hdr:hover .btn-add{opacity:1}
+.btn-add:hover{background:rgba(201,168,76,.18)}
+
+/* rows */
+.glist{background:var(--card)}
+.grow{
+  display:grid;grid-template-columns:1fr 84px auto auto;
+  align-items:center;gap:10px;
+  padding:11px 20px;
+  border-bottom:1px solid rgba(255,255,255,.04);
+  transition:background .15s;
+}
+.grow:last-child{border-bottom:none}
+.grow:hover{background:rgba(201,168,76,.04)}
+
+.gname{
+  font-size:11px;font-weight:600;letter-spacing:2px;
+  color:var(--txt);text-transform:uppercase;
+  outline:none;background:transparent;border:none;
+  border-bottom:1px dashed transparent;
+  padding:2px 4px;width:100%;
+  font-family:'Montserrat',sans-serif;cursor:text;
+  transition:border-color .2s;
+}
+.gname:hover{border-bottom-color:rgba(201,168,76,.3)}
+.gname:focus{border-bottom-color:var(--gold);background:rgba(201,168,76,.05);border-radius:3px}
+
+.sw{display:flex;align-items:center;gap:5px}
+.slbl{font-size:9px;color:var(--muted);letter-spacing:1px}
+.snum{
+  width:34px;text-align:center;
+  font-size:14px;font-weight:600;
+  font-family:'Cormorant Garamond',serif;color:var(--gold-l);
+  background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);
+  border-radius:4px;padding:3px 2px;outline:none;
+  transition:border-color .2s;
+}
+.snum:focus{border-color:var(--gold)}
+
+.tbadge{
+  font-size:9px;font-weight:600;letter-spacing:1px;
+  padding:5px 9px;border-radius:20px;white-space:nowrap;
+  background:rgba(155,28,28,.22);color:#f09090;
+  border:1px solid rgba(155,28,28,.4);
+  outline:none;font-family:'Montserrat',sans-serif;
+  cursor:text;min-width:62px;text-align:center;
+  transition:border-color .2s,background .2s;
+}
+.tbadge:focus{border-color:var(--red-b);background:rgba(155,28,28,.35)}
+
+.dbtn{
+  background:none;border:none;color:rgba(255,80,80,.2);
+  cursor:pointer;font-size:13px;padding:2px 4px;border-radius:3px;
+  transition:color .2s,background .2s;opacity:0;
+}
+.grow:hover .dbtn{opacity:1}
+.dbtn:hover{color:#e06060;background:rgba(155,28,28,.2)}
+
+/* stats */
+.stats{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:14px;padding:0 20px;margin-bottom:28px;
+}
+@media(max-width:460px){.stats{grid-template-columns:1fr 1fr}}
+.sc{
+  background:linear-gradient(135deg,#0f0000,#190404);
+  border:1px solid rgba(201,168,76,.14);border-radius:10px;
+  padding:20px 14px;text-align:center;
+  box-shadow:inset 0 1px 0 rgba(201,168,76,.06);
+}
+.sn{font-family:'Cormorant Garamond',serif;font-size:40px;font-weight:600;color:var(--gold);line-height:1}
+.sl{font-family:'Cinzel',serif;font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-top:7px}
+
+.orn{text-align:center;font-size:16px;margin:20px 0 14px;color:var(--gold-d);letter-spacing:8px}
+.ftxt{text-align:center;font-family:'Cinzel',serif;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(201,168,76,.22)}
+
+/* loading overlay */
+#overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(10,10,10,.85);
+  z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:16px;
+}
+#overlay.show{display:flex}
+.spin{
+  width:40px;height:40px;border-radius:50%;
+  border:3px solid rgba(201,168,76,.2);
+  border-top-color:var(--gold);
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ov-txt{font-family:'Cinzel',serif;font-size:11px;letter-spacing:3px;color:var(--gold);text-transform:uppercase}
+</style>
+</head>
+<body>
+
+<div id="overlay">
+  <div class="spin"></div>
+  <div class="ov-txt">Generating …</div>
+</div>
+
+<div id="chart">
+
+  <!-- BANNER -->
+  <div class="banner">
+    <span class="b-icon">🏬</span>
+    <span class="b-txt">Somewhere</span>
+    <span class="b-dot">◆</span>
+    <span class="b-txt">Galleria Mall</span>
+    <span class="b-dot">◆</span>
+    <span class="b-txt">Event Seating</span>
+  </div>
+
+  <!-- HEADER with timestamp -->
+  <div class="hdr">
+    <div class="hdr-eye">Official Seating Assignment</div>
+    <h1>Table <em>Arrangements</em></h1>
+    <div class="divider"><span>✦</span></div>
+    <div class="hdr-sub">Inside &amp; Outside Allocations</div>
+    <div class="ts-badge" id="timestamp">just now</div>
+  </div>
+
+  <!-- ACTION BAR (PDF, PNG, RESET) -->
+  <div class="actions-bar">
+    <button class="action-btn" onclick="downloadPDF()">
+      <svg viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm-7 2h14v2H5v-2z"/></svg>
+      PDF
+    </button>
+    <button class="action-btn" onclick="downloadPNG()">
+      <svg viewBox="0 0 24 24"><path d="M21 19v1H3v-1h18zM8 5h8l2 4H6l2-4zm0-2L4 9v8h16V9l-4-6H8z"/></svg>
+      PNG
+    </button>
+    <button class="action-btn reset-btn" onclick="resetToSample()">
+      <svg viewBox="0 0 24 24"><path d="M17.65 6.35A8 8 0 1 0 19 12h-2a6 6 0 1 1-2.23-4.69l2.64-2.64 1.42 1.42-3.54 3.54-3.54-3.54 1.41-1.41L17.65 6.35z"/></svg>
+      Reset
+    </button>
+  </div>
+
+  <!-- SECTIONS -->
+  <div class="sections">
+    <div class="section inside">
+      <div class="sec-hdr">
+        <div class="sh-l">
+          <div class="s-ico">🏛️</div>
+          <div>
+            <div class="s-title">Inside</div>
+            <div class="s-sub" id="in-sub">—</div>
+          </div>
+        </div>
+        <button class="btn-add" onclick="addRow('inside')">＋ Add</button>
+      </div>
+      <div class="glist" id="inside-list"></div>
+    </div>
+
+    <div class="section outside">
+      <div class="sec-hdr">
+        <div class="sh-l">
+          <div class="s-ico">🌿</div>
+          <div>
+            <div class="s-title">Outside</div>
+            <div class="s-sub" id="out-sub">—</div>
+          </div>
+        </div>
+        <button class="btn-add" onclick="addRow('outside')">＋ Add</button>
+      </div>
+      <div class="glist" id="outside-list"></div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="sc"><div class="sn" id="s-g">—</div><div class="sl">Total Groups</div></div>
+    <div class="sc"><div class="sn" id="s-s">—</div><div class="sl">Total Seats</div></div>
+    <div class="sc"><div class="sn" id="s-t">—</div><div class="sl">Tables Used</div></div>
+  </div>
+
+  <div class="orn">— ✦ —</div>
+  <div class="ftxt">Somewhere @ Galleria Mall · updated in real time</div>
+</div><!-- end #chart -->
+
+<script>
+// --- DATA (with localStorage support) ---
+let data = { inside: [], outside: [] };
+
+// Default sample
+const defaultData = {
+  inside: [
+    {name:'Salma',   seats:8, table:'Table 20'},
+    {name:'Wadha',   seats:6, table:'Table 32'},
+    {name:'Maythaa', seats:4, table:'Tables 10 & 17'},
+  ],
+  outside: [
+    {name:'Bakr',   seats:5, table:'Table 54'},
+    {name:'Couley', seats:5, table:'Table 55'},
+    {name:'Noora',  seats:2, table:'Table 56'},
+    {name:'Aysha',  seats:2, table:'Table 46'},
+    {name:'Sahand', seats:3, table:'Table 45'},
+    {name:'Seem',   seats:2, table:'Table 42'},
+  ]
+};
+
+// Load from localStorage
+function loadFromStorage() {
+  const saved = localStorage.getItem('seatingData');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed.inside && parsed.outside) {
+        data = parsed;
+        return;
+      }
+    } catch(e) {}
+  }
+  data = JSON.parse(JSON.stringify(defaultData)); // deep copy
+}
+loadFromStorage();
+
+// Save to localStorage
+function saveToStorage() {
+  localStorage.setItem('seatingData', JSON.stringify(data));
+  updateTimestamp();
+}
+
+// timestamp update
+function updateTimestamp() {
+  const now = new Date();
+  document.getElementById('timestamp').innerText = 
+    `last updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+}
+
+// --- RENDER ---
+function render(z) {
+  const el = document.getElementById(z+'-list');
+  el.innerHTML = '';
+  data[z].forEach((g,i) => {
+    const r = document.createElement('div');
+    r.className = 'grow';
+    r.innerHTML = `
+      <input class="gname" value="${g.name.replace(/"/g,'&quot;')}" placeholder="Name"
+             oninput="data['${z}'][${i}].name=this.value;stats();saveToStorage()">
+      <div class="sw">
+        <span class="slbl">Seats</span>
+        <input class="snum" type="number" min="1" value="${g.seats}"
+               oninput="data['${z}'][${i}].seats=+this.value||0;stats();saveToStorage()">
+      </div>
+      <div class="tbadge" contenteditable="true"
+           oninput="data['${z}'][${i}].table=this.innerText;stats();saveToStorage()">${g.table}</div>
+      <button class="dbtn" onclick="delRow('${z}',${i})">✕</button>
+    `;
+    el.appendChild(r);
+  });
+  stats();
+  saveToStorage(); // ensure save after render (e.g., delete)
+}
+
+// stats & totals
+function countTables(z){
+  return new Set(
+    data[z].flatMap(g=>g.table.split(/[&,\/]/).map(s=>s.trim()))
+           .filter(s=>s&&s!=='—' && s!=='')
+  ).size;
+}
+
+function stats(){
+  ['inside','outside'].forEach(z=>{
+    const g=data[z].length, s=data[z].reduce((a,x)=>a+(+x.seats||0),0);
+    document.getElementById(z==='inside'?'in-sub':'out-sub').textContent =
+      `${g} Group${g!==1?'s':''} · ${s} Seat${s!==1?'s':''}`;
+  });
+  const all=[...data.inside,...data.outside];
+  document.getElementById('s-g').textContent = all.length;
+  document.getElementById('s-s').textContent = all.reduce((a,x)=>a+(+x.seats||0),0);
+  document.getElementById('s-t').textContent = countTables('inside')+countTables('outside');
+}
+
+// --- CRUD operations ---
+function addRow(z) {
+  data[z].push({name:'New Guest', seats:1, table:'Table —'});
+  render(z);
+  const all = document.getElementById(z+'-list').querySelectorAll('.gname');
+  const last = all[all.length-1];
+  last.focus(); last.select();
+  saveToStorage();
+}
+
+function delRow(z,i){ data[z].splice(i,1); render(z); saveToStorage(); }
+
+// reset to sample
+function resetToSample() {
+  if (confirm('Reset to sample data? unsaved changes will be lost.')) {
+    data = JSON.parse(JSON.stringify(defaultData));
+    render('inside');
+    render('outside');
+    saveToStorage();
+  }
+}
+
+// --- EXPORT (PDF / PNG) with capture class ---
+async function captureChart(mode) {
+  const overlay = document.getElementById('overlay');
+  overlay.classList.add('show');
+  const chart = document.getElementById('chart');
+  
+  // enable capture mode (hides buttons, styles inputs as plain text)
+  chart.classList.add('capture-mode');
+
+  try {
+    const canvas = await html2canvas(chart, {
+      scale: 2,
+      backgroundColor: '#0a0a0a',
+      logging: false,
+      useCORS: true,
+    });
+
+    if (mode === 'png') {
+      // download PNG
+      const link = document.createElement('a');
+      link.download = `seating-${new Date().toISOString().slice(0,10)}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } else if (mode === 'pdf') {
+      // generate PDF via jspdf
+      const { jsPDF } = window.jspdf;
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const ratio = canvas.height / canvas.width;
+      const imgH = pageW * ratio;
+
+      if (imgH <= pageH) {
+        pdf.addImage(imgData, 'JPEG', 0, 0, pageW, imgH);
+      } else {
+        let yOffset = 0;
+        while (yOffset < imgH) {
+          if (yOffset > 0) pdf.addPage();
+          pdf.addImage(imgData, 'JPEG', 0, -yOffset, pageW, imgH);
+          yOffset += pageH;
+        }
+      }
+      pdf.save(`Seating-Galleria-${new Date().toISOString().slice(0,10)}.pdf`);
+    }
+  } catch (e) {
+    alert('Export failed. Check console.');
+    console.error(e);
+  }
+
+  // remove capture mode
+  chart.classList.remove('capture-mode');
+  overlay.classList.remove('show');
+}
+
+function downloadPDF() { captureChart('pdf'); }
+function downloadPNG() { captureChart('png'); }
+
+// initial render
+render('inside');
+render('outside');
+updateTimestamp();
+
+// extra safety: save on any stats call (already inside inputs) but we call save from each handler.
+// also auto-save on beforeunload? not necessary
+
+</script>
+</body>
+</html>
