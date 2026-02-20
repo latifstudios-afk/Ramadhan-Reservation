@@ -435,7 +435,7 @@
             ['inside', 'outside'].forEach(zone => {
                 const floorDiv = document.createElement('div');
                 floorDiv.className = 'floor';
-                floorDiv.innerHTML = `<h3>${zone === 'inside' ? '🏛️ INSIDE' : '🌿 OUTSIDE'}</h3>
+                floorDiv.innerHTML = `<h3>${zone === 'inside' ? 'INSIDE' : 'OUTSIDE'}</h3>
                     <div class="floor-grid" id="floor-${zone}"></div>
                     <div class="floor-actions">
                         <div class="add-table-panel">
@@ -678,7 +678,7 @@
             y += 10;
             pdf.setFontSize(10);
             // Headers
-            const headers = ['Section', 'Name', 'Guests', 'Table', 'Status', 'Payment'];
+            const headers = ['Section', 'Name', 'Number', 'Pax', 'Table', 'Status', 'Payment'];
             const colX = [20, 50, 85, 115, 145, 180]; // approximate positions
             pdf.setFont('helvetica', 'bold');
             headers.forEach((h, i) => pdf.text(h, colX[i], y));
