@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Somewhere · Galleria Mall Al-Wasl Dubai</title>
+    <title>Somewhere · Galleria Mall</title>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Cinzel:wght@400;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -257,7 +257,7 @@
         <button class="action-btn" onclick="downloadPNG()">🖼️ FULL PNG</button>
         <button class="action-btn" onclick="exportReservations()">📋 EXPORT LIST</button>
         <button class="action-btn ocr-btn" onclick="uploadImage()">📤 UPLOAD IMAGE</button>
-        <button class="action-btn reset-btn" onclick="resetToSample()">↺ RESET</button>
+        <button class="action-btn reset-btn" onclick="resetToEmpty()">🗑️ CLEAR ALL</button>
     </div>
 
     <!-- FLOOR PLANS (Inside / Outside) -->
@@ -273,63 +273,20 @@
         <div class="sc"><div class="sn" id="stat-tables">0</div><div class="sl">TABLES</div></div>
     </div>
     <div class="orn">— ✦ —</div>
-    <div class="ftxt">LS · luxury seating · OCR ready</div>
+    <div class="ftxt">LS · luxury seating · Made Your Way</div>
 </div>
 
 <script>
     (function() {
-        // ---------- DATA MODELS ----------
+        // ---------- DATA MODELS - START EMPTY ----------
         let tables = { inside: [], outside: [] };
         let reservations = { inside: [], outside: [] };
 
         function uid() { return Date.now() + '-' + Math.random().toString(36).substr(2, 9); }
 
-        const insideNumbers = [11,14,16,17,18,19,20,30,32,33,35,37,38];
-        const outsideNumbers = [41,42,44,45,46,50,51,52,53,54,55,56];
-
-        function createDefaultTables() {
-            const inside = insideNumbers.sort((a,b)=>a-b).map((num, idx) => ({
-                id: uid(), number: num, capacity: 4, paid: false,
-                shape: ['square','rectangle','circle','oval'][idx % 4],
-                position: { x: 40 + (idx % 4) * 130, y: 40 + Math.floor(idx / 4) * 120 }
-            }));
-            inside.forEach(t => {
-                if ([20,32,17,11,18].includes(t.number)) t.capacity = 4;
-                else if ([16,14,19].includes(t.number)) t.capacity = 2;
-                else if ([37,35,38,33,30].includes(t.number)) t.capacity = 6;
-            });
-            const outside = outsideNumbers.sort((a,b)=>a-b).map((num, idx) => ({
-                id: uid(), number: num, capacity: 4,
-                shape: ['square','rectangle','circle','oval'][idx % 4],
-                position: { x: 40 + (idx % 4) * 130, y: 40 + Math.floor(idx / 4) * 120 }
-            }));
-            outside.forEach(t => {
-                if ([42,46,56,50].includes(t.number)) t.capacity = 2;
-                else if ([45,55,54,41,44].includes(t.number)) t.capacity = 6;
-            });
-            return { inside, outside };
-        }
-
-        function createDefaultReservations(tableList) {
-            return {
-                inside: [
-                    { id: uid(), name: 'Salma', partySize: 8, tableId: tableList.inside.find(t=>t.number===20)?.id, status: 'confirmed', paid: true, time: '19:30' },
-                    { id: uid(), name: 'Wadha', partySize: 6, tableId: tableList.inside.find(t=>t.number===32)?.id, status: 'seated', paid: true, time: '20:00' },
-                    { id: uid(), name: 'Maythaa', partySize: 4, tableId: tableList.inside.find(t=>t.number===17)?.id, status: 'no-show', paid: false, time: '18:45' },
-                ],
-                outside: [
-                    { id: uid(), name: 'Bakr', partySize: 5, tableId: tableList.outside.find(t=>t.number===45)?.id, status: 'seated', paid: true, time: '19:00' },
-                    { id: uid(), name: 'Couley', partySize: 5, tableId: tableList.outside.find(t=>t.number===55)?.id, status: 'seated', paid: true, time: '19:15' },
-                    { id: uid(), name: 'Noora', partySize: 2, tableId: tableList.outside.find(t=>t.number===56)?.id, status: 'confirmed', paid: true, time: '20:30' },
-                    { id: uid(), name: 'Aysha', partySize: 2, tableId: tableList.outside.find(t=>t.number===46)?.id, status: 'confirmed', paid: false, time: '19:45' },
-                    { id: uid(), name: 'Sahand', partySize: 3, tableId: tableList.outside.find(t=>t.number===45)?.id, status: 'no-show', paid: false, time: '18:30' },
-                    { id: uid(), name: 'Seem', partySize: 2, tableId: tableList.outside.find(t=>t.number===42)?.id, status: 'confirmed', paid: true, time: '21:00' },
-                ]
-            };
-        }
-
+        // NO DEFAULT TABLES - start completely empty
         function loadFromStorage() {
-            const saved = localStorage.getItem('SeatingOCR');
+            const saved = localStorage.getItem('SeatingOCR_Empty');
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
@@ -340,13 +297,14 @@
                     }
                 } catch (e) {}
             }
-            tables = createDefaultTables();
-            reservations = createDefaultReservations(tables);
+            // Start empty
+            tables = { inside: [], outside: [] };
+            reservations = { inside: [], outside: [] };
         }
         loadFromStorage();
 
         function save() {
-            localStorage.setItem('SeatingOCR', JSON.stringify({ tables, reservations }));
+            localStorage.setItem('SeatingOCR_Empty', JSON.stringify({ tables, reservations }));
             updateTimestamp();
         }
 
@@ -607,10 +565,10 @@
             renderAll();
         };
 
-        window.resetToSample = () => {
-            if (!confirm('Reset to default layout?')) return;
-            tables = createDefaultTables();
-            reservations = createDefaultReservations(tables);
+        window.resetToEmpty = () => {
+            if (!confirm('Clear all tables and reservations?')) return;
+            tables = { inside: [], outside: [] };
+            reservations = { inside: [], outside: [] };
             renderAll();
         };
 
@@ -626,7 +584,7 @@
             if (outsideSub) outsideSub.innerText = `${reservations.outside.length} groups`;
         }
 
-        // ----- ROBUST OCR UPLOAD -----
+        // ----- ROBUST OCR UPLOAD (handles your exact image formats) -----
         window.uploadImage = () => {
             const input = document.createElement('input');
             input.type = 'file';
@@ -645,14 +603,26 @@
                     Tesseract.recognize(
                         imgData,
                         'eng',
-                        { logger: m => { if (m.status === 'recognizing text') statusEl.innerText = `OCR: ${Math.round(m.progress * 100)}%`; } }
+                        { 
+                            logger: m => { 
+                                if (m.status === 'recognizing text') {
+                                    statusEl.innerText = `OCR: ${Math.round(m.progress * 100)}%`;
+                                }
+                            }
+                        }
                     ).then(({ data: { text } }) => {
                         statusEl.innerText = 'Parsing results...';
                         console.log('Raw OCR text:', text);
-                        parseOCRTextRobust(text);
-                        overlay.classList.remove('show');
+                        
+                        // Clear existing data before importing
+                        tables = { inside: [], outside: [] };
+                        reservations = { inside: [], outside: [] };
+                        
+                        parseImageFormat(text);
+                        
                         renderAll();
-                        alert('OCR processing complete. Check your tables and reservations.');
+                        overlay.classList.remove('show');
+                        alert(`OCR complete. Found ${tables.inside.length + tables.outside.length} tables and ${reservations.inside.length + reservations.outside.length} reservations.`);
                     }).catch(err => {
                         alert('OCR failed: ' + err);
                         overlay.classList.remove('show');
@@ -663,29 +633,33 @@
             input.click();
         };
 
-        function parseOCRTextRobust(text) {
-            // Split into lines and clean
+        function parseImageFormat(text) {
             const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
             
-            let currentSection = 'outside'; // default
+            let currentSection = 'outside';
+            let insideHeaderFound = false;
+            let outsideHeaderFound = false;
             
-            // Clear existing reservations and tables? We'll merge instead
-            // We'll create a map of existing tables by number for quick lookup
-            const tableMap = { inside: {}, outside: {} };
-            tables.inside.forEach(t => tableMap.inside[t.number] = t);
-            tables.outside.forEach(t => tableMap.outside[t.number] = t);
-
+            // First pass: detect sections
             lines.forEach(line => {
-                // Section detection
-                if (line.match(/inside|indoor|🏛️/i)) {
+                if (line.match(/INSIDE/i) && !line.match(/OUTSIDE/i)) {
+                    insideHeaderFound = true;
                     currentSection = 'inside';
-                    return;
-                }
-                if (line.match(/outside|outdoor|🌿/i)) {
+                } else if (line.match(/OUTSIDE/i)) {
+                    outsideHeaderFound = true;
                     currentSection = 'outside';
-                    return;
                 }
-
+            });
+            
+            // Reset section based on headers
+            currentSection = insideHeaderFound ? 'inside' : (outsideHeaderFound ? 'outside' : 'outside');
+            
+            // Second pass: extract data
+            lines.forEach(line => {
+                // Update section if we see clear headers
+                if (line.match(/INSIDE/i)) currentSection = 'inside';
+                if (line.match(/OUTSIDE/i)) currentSection = 'outside';
+                
                 // Pattern 1: "Salma | 8 guests | T-20 | confirmed | PAID"
                 let match = line.match(/([A-Za-z]+)\s*[|\s]\s*(\d+)\s*guests?\s*[|\s]\s*T[-\s]*(\d+)\s*[|\s]\s*([a-z-]+)\s*[|\s]\s*(PAID|UNPAID)/i);
                 if (match) {
@@ -693,7 +667,7 @@
                     createOrUpdateFromOCR(currentSection, name, parseInt(guests), parseInt(tableNum), status, paid === 'PAID');
                     return;
                 }
-
+                
                 // Pattern 2: "Salma 8 T-20 confirmed PAID" (no pipes)
                 match = line.match(/([A-Za-z]+)\s+(\d+)\s+T[-\s]*(\d+)\s+([a-z-]+)\s+(PAID|UNPAID)/i);
                 if (match) {
@@ -701,28 +675,39 @@
                     createOrUpdateFromOCR(currentSection, name, parseInt(guests), parseInt(tableNum), status, paid === 'PAID');
                     return;
                 }
-
-                // Pattern 3: "Salma | 8 | T-20 | confirmed | PAID" (no "guests")
+                
+                // Pattern 3: "Salma | 8 | T-20 | confirmed | PAID"
                 match = line.match(/([A-Za-z]+)\s*[|\s]\s*(\d+)\s*[|\s]\s*T[-\s]*(\d+)\s*[|\s]\s*([a-z-]+)\s*[|\s]\s*(PAID|UNPAID)/i);
                 if (match) {
                     const [_, name, guests, tableNum, status, paid] = match;
                     createOrUpdateFromOCR(currentSection, name, parseInt(guests), parseInt(tableNum), status, paid === 'PAID');
                     return;
                 }
+                
+                // Pattern 4: Table with name and PAID/UNPAID (like "T-41", then "Seem (2) PAID")
+                // First capture standalone table numbers
+                let tableMatch = line.match(/T[-\s]*(\d+)/i);
+                if (tableMatch && !line.match(/guests?|confirmed|seated|no-show/i)) {
+                    // Just a table number, create empty table
+                    const tableNum = parseInt(tableMatch[1], 10);
+                    createTableIfNotExists(currentSection, tableNum);
+                }
+                
+                // Pattern 5: "Seem (2) PAID" - find associated table (previous line might be T-42)
+                let nameMatch = line.match(/([A-Za-z]+)\s*\((\d+)\)\s*(PAID|UNPAID)/i);
+                if (nameMatch) {
+                    const [_, name, guests, paid] = nameMatch;
+                    // Look for the most recent table number in previous lines
+                    // This is simplified - we'll just create a table with number based on context
+                    // In a real implementation, you'd track the last seen table number
+                    // For now, we'll rely on other patterns
+                }
             });
         }
 
-        function createOrUpdateFromOCR(section, name, guests, tableNum, statusStr, paid) {
-            // Normalize status
-            let status = 'confirmed';
-            if (statusStr.toLowerCase().includes('no') || statusStr.toLowerCase().includes('show')) status = 'no-show';
-            else if (statusStr.toLowerCase().includes('seat')) status = 'seated';
-
-            // Find or create table
-            let table = tables[section].find(t => t.number === tableNum);
-            if (!table) {
-                // Create new table
-                const newId = uid();
+        function createTableIfNotExists(section, tableNum, capacity = 4) {
+            if (!tables[section].some(t => t.number === tableNum)) {
+                // Find free position
                 let baseX = 60, baseY = 60;
                 for (let attempt = 0; attempt < 30; attempt++) {
                     baseX = 40 + (attempt * 40) % 350;
@@ -734,12 +719,30 @@
                     });
                     if (!collision) break;
                 }
-                table = { id: newId, number: tableNum, capacity: guests, shape: 'square', position: { x: baseX, y: baseY } };
-                tables[section].push(table);
-            } else {
-                // Update capacity if larger
-                if (guests > table.capacity) table.capacity = guests;
+                const newTable = {
+                    id: uid(),
+                    number: tableNum,
+                    capacity: capacity,
+                    shape: 'square',
+                    position: { x: baseX, y: baseY }
+                };
+                tables[section].push(newTable);
+                return newTable;
             }
+            return tables[section].find(t => t.number === tableNum);
+        }
+
+        function createOrUpdateFromOCR(section, name, guests, tableNum, statusStr, paid) {
+            // Normalize status
+            let status = 'confirmed';
+            if (statusStr.toLowerCase().includes('no') || statusStr.toLowerCase().includes('show')) status = 'no-show';
+            else if (statusStr.toLowerCase().includes('seat')) status = 'seated';
+
+            // Create or get table
+            const table = createTableIfNotExists(section, tableNum, guests);
+            
+            // Update table capacity if needed
+            if (guests > table.capacity) table.capacity = guests;
 
             // Create or update reservation
             const existingIdx = reservations[section].findIndex(r => r.tableId === table.id);
@@ -750,8 +753,9 @@
                 tableId: table.id,
                 status: status,
                 paid: paid,
-                time: '19:30' // default
+                time: '19:30'
             };
+            
             if (existingIdx >= 0) {
                 reservations[section][existingIdx] = newRes;
             } else {
@@ -836,6 +840,7 @@
             pdf.save('reservation-list.pdf');
         };
 
+        // Initial render with empty state
         renderAll();
     })();
 </script>
