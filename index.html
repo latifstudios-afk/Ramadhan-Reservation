@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Somewhere · Galleria Mall Al-Wasl</title>
+    <title>Somewhere · Galleria Mall Al-Wasl Dubai</title>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Cinzel:wght@400;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- Tesseract.js for OCR -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -627,11 +626,11 @@
             if (outsideSub) outsideSub.innerText = `${reservations.outside.length} groups`;
         }
 
-        // ----- OCR UPLOAD -----
+        // ----- ROBUST OCR UPLOAD -----
         window.uploadImage = () => {
             const input = document.createElement('input');
             input.type = 'file';
-            input.accept = 'image/*';
+            input.accept = 'image/*,application/pdf';
             input.onchange = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -649,8 +648,11 @@
                         { logger: m => { if (m.status === 'recognizing text') statusEl.innerText = `OCR: ${Math.round(m.progress * 100)}%`; } }
                     ).then(({ data: { text } }) => {
                         statusEl.innerText = 'Parsing results...';
-                        parseOCRText(text);
+                        console.log('Raw OCR text:', text);
+                        parseOCRTextRobust(text);
                         overlay.classList.remove('show');
+                        renderAll();
+                        alert('OCR processing complete. Check your tables and reservations.');
                     }).catch(err => {
                         alert('OCR failed: ' + err);
                         overlay.classList.remove('show');
@@ -661,53 +663,66 @@
             input.click();
         };
 
-        function parseOCRText(text) {
-            console.log('OCR text:', text);
-            // Split into lines
+        function parseOCRTextRobust(text) {
+            // Split into lines and clean
             const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-            let currentSection = 'outside'; // default, but we'll detect
-            const sectionKeywords = { inside: /inside|indoor|🏛️/i, outside: /outside|outdoor|🌿/i };
+            
+            let currentSection = 'outside'; // default
+            
+            // Clear existing reservations and tables? We'll merge instead
+            // We'll create a map of existing tables by number for quick lookup
+            const tableMap = { inside: {}, outside: {} };
+            tables.inside.forEach(t => tableMap.inside[t.number] = t);
+            tables.outside.forEach(t => tableMap.outside[t.number] = t);
 
             lines.forEach(line => {
-                // Check for section header
-                if (sectionKeywords.inside.test(line)) { currentSection = 'inside'; return; }
-                if (sectionKeywords.outside.test(line)) { currentSection = 'outside'; return; }
+                // Section detection
+                if (line.match(/inside|indoor|🏛️/i)) {
+                    currentSection = 'inside';
+                    return;
+                }
+                if (line.match(/outside|outdoor|🌿/i)) {
+                    currentSection = 'outside';
+                    return;
+                }
 
-                // Parse line: expected format "Name | X guests | T-XX | status | PAID/UNPAID"
-                // or variations like "Salma 8 T-20 confirmed PAID"
-                const parts = line.split(/[|,;]\s*/).map(p => p.trim());
-                if (parts.length < 5) {
-                    // try splitting by whitespace? but safer to use regex
-                    const match = line.match(/([A-Za-z]+)\s*[\|]?\s*(\d+)\s*guests?\s*[\|]?\s*T[-\s]*(\d+)\s*[\|]?\s*([a-z-]+)\s*[\|]?\s*(PAID|UNPAID)/i);
-                    if (match) {
-                        const [_, name, guests, tableNum, status, paid] = match;
-                        createReservationFromOCR(currentSection, name, guests, tableNum, status, paid);
-                    }
-                } else {
-                    // assume parts: [name, guests, table, status, paid]
-                    const name = parts[0];
-                    const guests = parseInt(parts[1].replace(/\D/g,'')) || 2;
-                    const tableMatch = parts[2].match(/\d+/);
-                    const tableNum = tableMatch ? parseInt(tableMatch[0],10) : null;
-                    const status = parts[3].toLowerCase().includes('no') ? 'no-show' : (parts[3].toLowerCase().includes('seat') ? 'seated' : 'confirmed');
-                    const paid = parts[4].toUpperCase().includes('PAID');
-                    if (tableNum) {
-                        createReservationFromOCR(currentSection, name, guests, tableNum, status, paid);
-                    }
+                // Pattern 1: "Salma | 8 guests | T-20 | confirmed | PAID"
+                let match = line.match(/([A-Za-z]+)\s*[|\s]\s*(\d+)\s*guests?\s*[|\s]\s*T[-\s]*(\d+)\s*[|\s]\s*([a-z-]+)\s*[|\s]\s*(PAID|UNPAID)/i);
+                if (match) {
+                    const [_, name, guests, tableNum, status, paid] = match;
+                    createOrUpdateFromOCR(currentSection, name, parseInt(guests), parseInt(tableNum), status, paid === 'PAID');
+                    return;
+                }
+
+                // Pattern 2: "Salma 8 T-20 confirmed PAID" (no pipes)
+                match = line.match(/([A-Za-z]+)\s+(\d+)\s+T[-\s]*(\d+)\s+([a-z-]+)\s+(PAID|UNPAID)/i);
+                if (match) {
+                    const [_, name, guests, tableNum, status, paid] = match;
+                    createOrUpdateFromOCR(currentSection, name, parseInt(guests), parseInt(tableNum), status, paid === 'PAID');
+                    return;
+                }
+
+                // Pattern 3: "Salma | 8 | T-20 | confirmed | PAID" (no "guests")
+                match = line.match(/([A-Za-z]+)\s*[|\s]\s*(\d+)\s*[|\s]\s*T[-\s]*(\d+)\s*[|\s]\s*([a-z-]+)\s*[|\s]\s*(PAID|UNPAID)/i);
+                if (match) {
+                    const [_, name, guests, tableNum, status, paid] = match;
+                    createOrUpdateFromOCR(currentSection, name, parseInt(guests), parseInt(tableNum), status, paid === 'PAID');
+                    return;
                 }
             });
-
-            renderAll();
-            alert('OCR processing complete. Check your tables and reservations.');
         }
 
-        function createReservationFromOCR(section, name, guests, tableNum, status, paid) {
-            // Ensure table exists
+        function createOrUpdateFromOCR(section, name, guests, tableNum, statusStr, paid) {
+            // Normalize status
+            let status = 'confirmed';
+            if (statusStr.toLowerCase().includes('no') || statusStr.toLowerCase().includes('show')) status = 'no-show';
+            else if (statusStr.toLowerCase().includes('seat')) status = 'seated';
+
+            // Find or create table
             let table = tables[section].find(t => t.number === tableNum);
             if (!table) {
-                // Create new table with default shape square
+                // Create new table
                 const newId = uid();
-                // find a free spot
                 let baseX = 60, baseY = 60;
                 for (let attempt = 0; attempt < 30; attempt++) {
                     baseX = 40 + (attempt * 40) % 350;
@@ -722,14 +737,14 @@
                 table = { id: newId, number: tableNum, capacity: guests, shape: 'square', position: { x: baseX, y: baseY } };
                 tables[section].push(table);
             } else {
-                // update capacity if larger
+                // Update capacity if larger
                 if (guests > table.capacity) table.capacity = guests;
             }
 
             // Create or update reservation
             const existingIdx = reservations[section].findIndex(r => r.tableId === table.id);
             const newRes = {
-                id: uid(),
+                id: existingIdx >= 0 ? reservations[section][existingIdx].id : uid(),
                 name: name,
                 partySize: guests,
                 tableId: table.id,
